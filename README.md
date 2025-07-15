@@ -6,4 +6,4 @@ Repository contains all files relating to a British Antarctic survey weather ana
 
 1. flyable_days.py - counts number of flyable days in typical flying season (run this file last - requires data produced by other scripts)
 2. precipitation.py - processes ERA5 precipitation files
-3. wind_speed.py - process ERA5 U and V component wind files
+3. wind_speed.py - processes ERA5 U and V component wind files
