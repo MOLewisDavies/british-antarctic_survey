@@ -2,11 +2,13 @@
 
 script to analyse precipitaion data from era5
 
-threshold for precipiation useed = 0.2mm/hr
+threshold for precipiation used = 0.2mm/hr
 
 functions in file:
 
 main(): runs other functions 
+get_stats(): gets data from era5 cube
+mask_cube(): masks cube based on shapefile
 
  """
 
@@ -16,22 +18,13 @@ from pathlib import Path
 import seaborn as sns
 import numpy as np
 import pandas as pd
+from iris.util import mask_cube_from_shapefile
+from cartopy.io.shapereader import Reader
 
 # Seaborn settings - makes it look nice
 sns.set_style('darkgrid')
 
-## thoughts on file outline:
-
-# read in precip files 
-# constrain to polygon map areas
-# count 2 hour periods where precip <0.2mm/hr for light, 
-
-# plots: 
-# no. of days per week with flying window?
-# no. of days per month with flying window?
-# "heat map" of polygon with precipitation values??? averages???
-
-
+## precipitation files
 precip_f_path = "/data/scratch/lewis.davies/bas/precip"
 precip_f_name = "*.grib"
 precip_files = sorted(glob.glob(f"{precip_f_path}/{precip_f_name}"))
@@ -39,72 +32,56 @@ precip_files = sorted(glob.glob(f"{precip_f_path}/{precip_f_name}"))
 ## site names
 SITES = ["theron_hills", "provider", "argentina_range"]
 
+## site shapefile
+filepath = "/home/users/lewis.davies/british_antarctic_survey/East Station Met AOI"
+shape_name = '*.shp'
+SHAPES = glob.glob(f'{filepath}/{shape_name}')
+
 
 ## runs other functions
 def main():
 
-    ## loops through sites
-    for site in SITES:
+    ## get site shapefile
+    for shape_file in SHAPES:
         
-        if site == "theron_hills":
-            x = np.arange(-30, -25.5, 0.25)
-            y = np.arange(-79.25, -78, 0.25)
+        ## loops through sites
+        for index, site in enumerate(SITES):
 
-        elif site == "provider":
-            x = np.arange(-30, -26, 0.25)
-            y = np.arange(-80.5, -80.0, 0.25)
-
-        elif site == "argentina_range":
-            x = np.arange(-45, -40.0, 0.25)
-            y = np.arange(-83.0, -81.0, 0.25)
-
-        ## path for csv files
-        csv_file = Path(f"csv_ouputs/precip_{site}_stats.csv") 
-        
-        ## checks if csv file exists
-        if csv_file.is_file():
+            ## path for csv files
+            csv_file = Path(f"csv_ouputs/precip_{site}_stats.csv") 
             
-            
-            continue
+            ## checks if csv file exists
+            if csv_file.is_file():
+                
+                
+                continue
 
 
-        # ...if it doesn't - produces data
-        else:
-        
-            get_stats(site, x, y)
+            ## ...if it doesn't - produces data
+            else:
+                
+                ## get data from era5
+                get_stats(index, site, shape_file)
         
     return
 
 
 ##  get data from era 5
-def get_stats(site, x, y):
+def get_stats(index, site, shape_file):
 
+    
+    ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
                  "hour": [], "grid_square": [], "precip": []}
     
-    """  ## number of grid points for each site
-    
-    if site == "theron_hills":
-        
-        grid_points = 21
-
-    elif site == "provider":
-        
-        grid_points = 11
-
-    elif site == "argentina_range":
-        
-        grid_points = 58 """
-    
-    
+    ## loop through precipitation files
     for file in precip_files:
 
         ## load file
         precip_cube = iris.load_cube(file)
 
         ## constrain cube to site location
-        area_con = iris.Constraint(longitude = x, latitude = y)
-        site_cube = precip_cube.extract(area_con)
+        site_cube = mask_cube(index, precip_cube, shape_file)
 
         ## loopp through cube times
         for site_cube in site_cube.slices_over('time'):
@@ -116,27 +93,59 @@ def get_stats(site, x, y):
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
             
+            ## loop through flattened data array 
             for grid, precip in enumerate(site_cube.data.flatten()):
                 
-                print(full_dt, grid)
+                ## if value is masked, do not add to dict
+                if type(precip) == np.ma.core.MaskedConstant:
+                    
+                    pass
                 
-                stats["full_date"].append(full_dt)
-                stats["month"].append(month_str)
-                stats["day"].append(day_str)
-                stats["hour"].append(hour_str)
-                stats["grid_square"].append(grid)
-                stats["precip"].append(precip)
-                        
-                        
-
+                else:
+                    
+                    ## add values to dictionary
+                    print(full_dt)
+                    stats["full_date"].append(full_dt)
+                    stats["month"].append(month_str)
+                    stats["day"].append(day_str)
+                    stats["hour"].append(hour_str)
+                    stats["grid_square"].append(grid)
+                    stats["precip"].append(precip)
+                 
+    ## turn dict into dataframe   
     site_df = pd.DataFrame(stats)
     
+    ## sort values by date
     site_df = site_df.sort_values(by='full_dt')
 
-    site_df.to_csv(f'/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/precip_{site}_stats_test.csv')
+    ## save dataframe as csv
+    site_df.to_csv(f'/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/precip_{site}_stats.csv')
+
+
+## mask cube using shapefile polygons
+def mask_cube(index, cube, shape_file):
+    
+    ## define shapefile reader
+    shape_reader = Reader(shape_file)
+    
+    ## get list of polygons from file
+    shape_con = shape_reader.geometries()
+    
+    ## list polygons 
+    shape_cons = list(shape_con)
+    
+    ## get polygon that matches site region
+    shape_con = shape_cons[index]
+    
+    ## mask cube based on shapefile polygon
+    shape_cube = mask_cube_from_shapefile(cube, shape_con)
+    
+    ## return masked cube
+    return shape_cube
 
 
 if __name__ == "__main__":
     main()
+print('finished')
 
 
