@@ -46,7 +46,7 @@ SHAPES = glob.glob(f'{filepath}/{shape_name}')
 def main():
     
     ## get shapefile
-    for shape in SHAPES:
+    for shape_file in SHAPES:
         
         ## loops through sites
         for index, site in enumerate(SITES):
@@ -65,13 +65,13 @@ def main():
             else:
             
                 ## get stats from cubes
-                get_stats(index, site)
+                get_stats(index, site, shape_file)
 
     
     return
 
 ## get stats from era5 data
-def get_stats(index, site):
+def get_stats(index, site, shape_file):
 
     ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
