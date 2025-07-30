@@ -125,7 +125,7 @@ def get_stats(index, site, shape_file):
     site_df = site_df.sort_values(by='full_dt')
     
     ## save dataframe as csv
-    site_df.to_csv(f'/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/wind_speed_{site}_stats_test.csv')
+    site_df.to_csv(f'/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/wind_speed_{site}_stats.csv')
 
 
 ## calculate wind speed from u and v cubes
