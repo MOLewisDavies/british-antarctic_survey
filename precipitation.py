@@ -2,8 +2,6 @@
 
 script to analyse precipitaion data from era5
 
-threshold for precipiation used = 0.2mm/hr
-
 functions in file:
 
 main(): runs other functions 
