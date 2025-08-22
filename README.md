@@ -9,3 +9,4 @@ Repository contains all files relating to a British Antarctic survey weather ana
 3. wind_speed.py - processes ERA5 U and V component wind files
 4. wind_gust.py - processes ERA5 instantaneous wind gust files
 5. visbility.py - processes ERA5 temperature, liquid water and ice water content files to calculate a visiblity approximation
+6. cloud.py - processes ERA5 'fraction of cloud cover' files to approximate cloud base height
