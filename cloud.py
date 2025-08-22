@@ -70,7 +70,7 @@ def get_stats(index, site, shape_file):
     stats = {"full_date": [], "month": [], "day": [], 
                  "hour": [], "grid_square": [], 'cloud_base': []}
     
-     ## loops through cloud files     
+    ## loops through cloud files     
     for file in CLOUD_FILES:
                 
         ## load cube
@@ -78,29 +78,36 @@ def get_stats(index, site, shape_file):
                 
         ## mask cube to polygon based on site
         site_press_cube = mask_cube(index, cube, shape_file)
-                
+             
+        ## loop through cubes by time   
         for cube in site_press_cube.slices_over('time'):
-                    
+            
+            ## gt time values
             time_coord = site_cube.coord('time')
             full_dt = time_coord.units.num2pydate(time_coord.points)[0]
             month_str = full_dt.strftime("%m")
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
-                        
+            
+            ## spressure level constraints 
             con_950 = iris.Constraint(pressure=950)
             con_975 = iris.Constraint(pressure=975)
             con_1000 = iris.Constraint(pressure=1000)
-                        
+                
+            ## Separate cubes by pressure levels        
             cube_950 = cube.extract(con_950)
             cube_975 = cube.extract(con_975)
             cube_1000 = cube.extract(con_1000)
-                        
+            
+            ## get cube data        
             cube_950_data = cube_950.data.flatten()
             cube_975_data = cube_975.data.flatten()
             cube_100_data = cube_1000.data.flatten()
-                        
+                       
+            ## get height from cubes 
             values = get_values(cube_950_data, cube_975_data, cube_1000_data)
-                                
+            
+            ## loop through values              
             for grid_square, cloud_base in enumerate(values):
                             
                 ## add values to dictionary
@@ -140,7 +147,8 @@ def get_cloud_base(values, heights):
             
             continue
   
-            
+
+## get non masked values from array  
 def get_values(cube_950_data, cube_975_data, cube_1000_data):
     
     values = []
