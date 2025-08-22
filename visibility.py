@@ -11,7 +11,7 @@ conver_wc_units(): converts water content units
 calculate_visibility(): calculate visibility approximation
 mask_cube(): masks cube based on shapefile
 
- """
+"""
 
 import iris
 import glob
@@ -87,25 +87,33 @@ def get_stats(index, site, shape_file):
         
         ## mask cube for correct site using shape_file
         site_cube = mask_cube(index, vis_cube, shape_file)
-    
-        ## loop through flattened data array
-        for grid, vis in enumerate(site_cube.data.flatten()):
+
+        for site_cube in site_cube.slices_over('time')
+            
+            time_coord = site_cube.coord('time')
+            full_dt = time_coord.units.num2pydate(time_coord.points)[0]
+            month_str = full_dt.strftime("%m")
+            day_str = full_dt.strftime("%d")
+            hour_str = full_dt.strftime("%H")
+        
+            ## loop through flattened data array
+            for grid, vis in enumerate(site_cube.data.flatten()):
                     
-                    ## if value is masked, do not add to dict
-                    if type(gust) == np.ma.core.MaskedConstant:
+                ## if value is masked, do not add to dict
+                if type(gust) == np.ma.core.MaskedConstant:
                         
-                        pass
+                    pass
                     
-                    else:
+                else:
                         
-                        ## add values to dictionary
-                        print(full_dt)
-                        stats["full_date"].append(full_dt)
-                        stats["month"].append(month_str)
-                        stats["day"].append(day_str)
-                        stats["hour"].append(hour_str)
-                        stats["grid_square"].append(grid)
-                        stats["vis"].append(vis)
+                    ## add values to dictionary
+                    print(full_dt)
+                    stats["full_date"].append(full_dt)
+                    stats["month"].append(month_str)
+                    stats["day"].append(day_str)
+                    stats["hour"].append(hour_str)
+                    stats["grid_square"].append(grid)
+                    stats["vis"].append(vis)
     
     
     ## turn dict into dataframe   
