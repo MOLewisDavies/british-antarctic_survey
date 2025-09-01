@@ -46,7 +46,7 @@ SHAPES = glob.glob(f'{filepath}/{shape_name}')
 def main():
     
     ## get shapefile
-    for shape_file in SHAPES:
+    for shape in SHAPES:
         
         ## loops through sites
         for index, site in enumerate(SITES):
@@ -65,17 +65,18 @@ def main():
             else:
             
                 ## get stats from cubes
-                get_stats(index, site, shape_file)
+                get_stats(index, site)
 
     
     return
 
 ## get stats from era5 data
-def get_stats(index, site, shape_file):
+def get_stats(index, site):
 
     ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
-             "hour": [], "grid_square": [], "wind_speed": []}
+             "hour": [], "latitude": [], 
+             "longitude": [],"wind_speed": []}
     
     ## loop through u and v wind files together
     for u_file, v_file in zip(U_WIND_FILES, V_WIND_FILES):
@@ -99,12 +100,46 @@ def get_stats(index, site, shape_file):
             month_str = full_dt.strftime("%m")
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
+            
+            for site_cube in site_cube.slices_over('time')
+            
+            time_coord = site_cube.coord('time')
+            full_dt = time_coord.units.num2pydate(time_coord.points)[0]
+            month_str = full_dt.strftime("%m")
+            day_str = full_dt.strftime("%d")
+            hour_str = full_dt.strftime("%H")
+        
+            values = []
+            lat_values = []
+            lon_values = []
+            
+            for site_cube in site_cube.slices_over(['longitude', 'latitude']):
+                
+                lats = site_cube.coord('latitude').points
+                lons = site_cube.coord('longitude').points
+                
+                ## loop through flattened data array 
+                for lat, lon, wind_speed in zip(lats, lons, site_cube.data.flatten()):
 
+                    
+                    ## if value is masked, do not add to dict
+                    if type(wind_speed) == np.ma.core.MaskedConstant:
+                        
+                        pass
+                    
+                    else:
+                        
+                        ## add values to list
+                        values.append(precip)
+                        lat_values.append(lat)
+                        lon_values.append(lon)
+                        
+            
             ## loop through flattened data array
-            for grid, wind_speed in enumerate(ws_cube.flatten()):
+            for lon, lat, wind_speed in zip(lon_values, lat_values, values):
 
                 ## if value is masked, do not add to dict
-                if type(data) == np.ma.core.MaskedConstant:
+                if type(wind_speed) == np.ma.core.MaskedConstant:
                     
                     pass
                 
@@ -115,7 +150,8 @@ def get_stats(index, site, shape_file):
                     stats["month"].append(month_str)
                     stats["day"].append(day_str)
                     stats["hour"].append(hour_str)
-                    stats["grid_square"].append(grid)
+                    stats["longitude"].apppend(lon)
+                    stats["latitude"].apppend(lat)
                     stats["wind_speed"].append(wind_speed)
 
     ## turn dict into dataframe
@@ -125,7 +161,7 @@ def get_stats(index, site, shape_file):
     site_df = site_df.sort_values(by='full_dt')
     
     ## save dataframe as csv
-    site_df.to_csv(f'/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/wind_speed_{site}_stats.csv')
+    site_df.to_csv(f'/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/wind_speed_{site}_stats_test.csv')
 
 
 ## calculate wind speed from u and v cubes
@@ -139,10 +175,6 @@ def calculate_wind_speed(u_cube, v_cube):
 
     #change cube name
     ws_cube.standard_name = 'wind_speed'
-
-    # convert wind speed units to knots
-
-    ws_cube.convert_units('knots')
 
     return ws_cube 
 
