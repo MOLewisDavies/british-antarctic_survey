@@ -129,30 +129,14 @@ def get_stats(index, site):
                     
                     else:
                         
-                        ## add values to list
-                        values.append(precip)
-                        lat_values.append(lat)
-                        lon_values.append(lon)
-                        
-            
-            ## loop through flattened data array
-            for lon, lat, wind_speed in zip(lon_values, lat_values, values):
-
-                ## if value is masked, do not add to dict
-                if type(wind_speed) == np.ma.core.MaskedConstant:
-                    
-                    pass
-                
-                else:
-                    
-                    ## add values to dictionary
-                    stats["full_date"].append(full_dt)
-                    stats["month"].append(month_str)
-                    stats["day"].append(day_str)
-                    stats["hour"].append(hour_str)
-                    stats["longitude"].apppend(lon)
-                    stats["latitude"].apppend(lat)
-                    stats["wind_speed"].append(wind_speed)
+                        ## add values to dictionary
+                        stats["full_date"].append(full_dt)
+                        stats["month"].append(month_str)
+                        stats["day"].append(day_str)
+                        stats["hour"].append(hour_str)
+                        stats["longitude"].apppend(lon)
+                        stats["latitude"].apppend(lat)
+                        stats["wind_speed"].append(wind_speed)
 
     ## turn dict into dataframe
     site_df = pd.DataFrame(stats)
