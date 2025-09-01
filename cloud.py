@@ -37,6 +37,7 @@ filepath = "/home/users/lewis.davies/british_antarctic_survey/East Station Met A
 shape_name = '*.shp'
 SHAPES = glob.glob(f'{filepath}/{shape_name}')
 
+
 ## runs other functions
 def main():
 
@@ -68,7 +69,8 @@ def get_stats(index, site, shape_file):
 
     ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
-                 "hour": [], "grid_square": [], 'cloud_base': []}
+                 "hour": [], "latitude": [], "longitude": [],
+                 'cloud_base': []}
     
     ## loops through cloud files     
     for file in CLOUD_FILES:
@@ -89,35 +91,44 @@ def get_stats(index, site, shape_file):
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
             
-            ## spressure level constraints 
-            con_950 = iris.Constraint(pressure=950)
-            con_975 = iris.Constraint(pressure=975)
-            con_1000 = iris.Constraint(pressure=1000)
+            for cube in cube.slices_over(['longitude', 'latitude']):
                 
-            ## Separate cubes by pressure levels        
-            cube_950 = cube.extract(con_950)
-            cube_975 = cube.extract(con_975)
-            cube_1000 = cube.extract(con_1000)
-            
-            ## get cube data        
-            cube_950_data = cube_950.data.flatten()
-            cube_975_data = cube_975.data.flatten()
-            cube_100_data = cube_1000.data.flatten()
-                       
-            ## get height from cubes 
-            values = get_values(cube_950_data, cube_975_data, cube_1000_data)
-            
-            ## loop through values              
-            for grid_square, cloud_base in enumerate(values):
-                            
+                ## spressure level constraints 
+                con_950 = iris.Constraint(pressure=950)
+                con_975 = iris.Constraint(pressure=975)
+                con_1000 = iris.Constraint(pressure=1000)
+                    
+                ## Separate cubes by pressure levels        
+                cube_950 = cube.extract(con_950)
+                cube_975 = cube.extract(con_975)
+                cube_1000 = cube.extract(con_1000)
+                
+                ## get cube data        
+                cube_950_data = cube_950.data.flatten()
+                cube_975_data = cube_975.data.flatten()
+                cube_1000_data = cube_1000.data.flatten()
+      
+                ## get height from cube data 
+                cloud_base = get_height(cube_950_data, cube_975_data, cube_1000_data)
+                lat = cube.coord('latitude').points[0]
+                lon = cube.coord('longitude').points[0]
+                
+                ## move to next iteration if value is masked
+                if cloud_base = 'masked value':
+                    
+                    continue
+                
                 ## add values to dictionary
-                print(full_dt)
-                stats["full_date"].append(full_dt)
-                stats["month"].append(month_str)
-                stats["day"].append(day_str)
-                stats["hour"].append(hour_str)
-                stats["grid_square"].append(grid)
-                stats['cloud_base'].append(cloud_base)
+                else:
+                                
+                    print(full_dt)
+                    stats["full_date"].append(full_dt)
+                    stats["month"].append(month_str)
+                    stats["day"].append(day_str)
+                    stats["hour"].append(hour_str)
+                    stats["longitude"].append(lon)
+                    stats["latitude"].append(lat)
+                    stats['cloud_base'].append(cloud_base)
                     
                  
     ## turn dict into dataframe   
@@ -133,41 +144,46 @@ def get_stats(index, site, shape_file):
 ## finds lowest cloud base height
 def get_cloud_base(values, heights):
     
+    ## loop through height dict
     for height, value in heights.items():
         
+        ## return height if cloud above 5 oktas
         if value >= 5/8:
             
             return height 
         
-        elif height == 350:
+        ## return height if on last height to check
+        elif height == 1850:
             
             return height
         
+        ## continue to next height/value pair
         else: 
             
             continue
   
 
 ## get non masked values from array  
-def get_values(cube_950_data, cube_975_data, cube_1000_data):
+def get_height(cube_950_data, cube_975_data, cube_1000_data):
     
-    values = []
-    
+    ## loop through data values
     for val_950, val_975, val_1000 in zip(cube_950_data, cube_975_data, cube_1000_data):
-                            
+        
+        ## heights to check
         heights = {350: val_1000, 1150: val_975, 1850: val_950}
-                            
+        
+        ## if  
         if type(val_950) == np.ma.core.MaskedConstant:
-                    
-            pass
+            
+            height = 'masked value'
+            
+            return height
                 
         else:
                                 
             height = get_cloud_base(values, heights)
                                 
-            values.append(height)
-            
-    return values    
+            return height  
     
 
 ## mask cube using shapefile polygons
