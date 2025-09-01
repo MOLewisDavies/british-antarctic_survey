@@ -118,32 +118,15 @@ def get_stats(index, site, shape_file):
                     else:
                         
                         ## add values to list
-                        values.append(precip)
-                        lat_values.append(lat)
-                        lon_values.append(lon)
-            
-            
-            
-            ## loop through flattened data array
-            for lon, lat, vis in zip(lon_values, lat_values, values):
-                    
-                ## if value is masked, do not add to dict
-                if type(vis) == np.ma.core.MaskedConstant:
-                        
-                    pass
-                    
-                else:
-                        
-                    ## add values to dictionary
-                    print(full_dt)
-                    stats["full_date"].append(full_dt)
-                    stats["month"].append(month_str)
-                    stats["day"].append(day_str)
-                    stats["hour"].append(hour_str)
-                    stats["longitude"].append(lon)
-                    stats["latitude"].append(lat)
-                    stats["vis"].append(vis)
-    
+                        ## add values to dictionary
+                        print(full_dt)
+                        stats["full_date"].append(full_dt)
+                        stats["month"].append(month_str)
+                        stats["day"].append(day_str)
+                        stats["hour"].append(hour_str)
+                        stats["longitude"].append(lon)
+                        stats["latitude"].append(lat)
+                        stats["vis"].append(vis)
     
     ## turn dict into dataframe   
     site_df = pd.DataFrame(stats)
