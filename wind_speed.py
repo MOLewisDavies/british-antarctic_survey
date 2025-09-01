@@ -100,43 +100,29 @@ def get_stats(index, site):
             month_str = full_dt.strftime("%m")
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
-            
-            for site_cube in site_cube.slices_over('time')
-            
-            time_coord = site_cube.coord('time')
-            full_dt = time_coord.units.num2pydate(time_coord.points)[0]
-            month_str = full_dt.strftime("%m")
-            day_str = full_dt.strftime("%d")
-            hour_str = full_dt.strftime("%H")
         
-            values = []
-            lat_values = []
-            lon_values = []
-            
             for site_cube in site_cube.slices_over(['longitude', 'latitude']):
                 
-                lats = site_cube.coord('latitude').points
-                lons = site_cube.coord('longitude').points
+                lat = site_cube.coord('latitude').points[0]
+                lon = site_cube.coord('longitude').points[0]
+                wind_speed = site_cube.data.flatten()[0]
                 
-                ## loop through flattened data array 
-                for lat, lon, wind_speed in zip(lats, lons, site_cube.data.flatten()):
-
-                    
-                    ## if value is masked, do not add to dict
-                    if type(wind_speed) == np.ma.core.MaskedConstant:
+                ## if value is masked, do not add to dict
+                if type(wind_speed) == np.ma.core.MaskedConstant:
                         
-                        pass
+                    pass
                     
-                    else:
+                else:
                         
-                        ## add values to dictionary
-                        stats["full_date"].append(full_dt)
-                        stats["month"].append(month_str)
-                        stats["day"].append(day_str)
-                        stats["hour"].append(hour_str)
-                        stats["longitude"].apppend(lon)
-                        stats["latitude"].apppend(lat)
-                        stats["wind_speed"].append(wind_speed)
+                    ## add values to dictionary
+                    stats["full_date"].append(full_dt)
+                    stats["month"].append(month_str)
+                    stats["day"].append(day_str)
+                    stats["hour"].append(hour_str)
+                    stats["longitude"].apppend(lon)
+                    stats["latitude"].apppend(lat)
+                    stats["wind_speed"].append(wind_speed)
+                        
 
     ## turn dict into dataframe
     site_df = pd.DataFrame(stats)
