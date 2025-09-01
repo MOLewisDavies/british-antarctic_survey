@@ -99,28 +99,25 @@ def get_stats(index, site, shape_file):
             
             for site_cube in site_cube.slices_over(['longitude', 'latitude']):
                 
-                lats = site_cube.coord('latitude').points
-                lons = site_cube.coord('longitude').points
-                
-                ## loop through flattened data array 
-                for lat, lon, precip in zip(lats, lons, site_cube.data.flatten()):
-
-                    
-                    ## if value is masked, do not add to dict
-                    if type(precip) == np.ma.core.MaskedConstant:
+                lat = site_cube.coord('latitude').points[0]
+                lon = site_cube.coord('longitude').points[0]
+                precip = site_cube.data.flatten()[0]
+                  
+                ## if value is masked, do not add to dict
+                if type(precip) == np.ma.core.MaskedConstant:
                         
-                        pass
+                    pass
                     
-                    else:
+                else:
                         
-                        print(full_dt)
-                        stats["full_date"].append(full_dt)
-                        stats["month"].append(month_str)
-                        stats["day"].append(day_str)
-                        stats["hour"].append(hour_str)
-                        stats["longitude"].append(lon)
-                        stats["latitude"].append(lat)
-                        stats["precip"].append(precip)    
+                    print(full_dt)
+                    stats["full_date"].append(full_dt)
+                    stats["month"].append(month_str)
+                    stats["day"].append(day_str)
+                    stats["hour"].append(hour_str)
+                    stats["longitude"].append(lon)
+                    stats["latitude"].append(lat)
+                    stats["precip"].append(precip)    
     
     ## turn dict into dataframe   
     site_df = pd.DataFrame(stats)
