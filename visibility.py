@@ -72,7 +72,8 @@ def get_stats(index, site, shape_file):
     
     ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
-             "hour": [], "grid_square": [], "vis": []}
+             "hour": [], 'latitude': [], 'longitude': [],
+             "vis": []}
     
     ## loop through lwc, iwc and temp files together
     for temp_file, lwc_file, iwc_file in zip(TEMP_FILES, LWC_FILES, IWC_FILES):
@@ -96,8 +97,35 @@ def get_stats(index, site, shape_file):
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
         
+            values = []
+            lat_values = []
+            lon_values = []
+            
+            for site_cube in site_cube.slices_over(['longitude', 'latitude']):
+                
+                lats = site_cube.coord('latitude').points
+                lons = site_cube.coord('longitude').points
+                
+                ## loop through flattened data array 
+                for lat, lon, vis in zip(lats, lons, site_cube.data.flatten()):
+
+                    
+                    ## if value is masked, do not add to dict
+                    if type(vis) == np.ma.core.MaskedConstant:
+                        
+                        pass
+                    
+                    else:
+                        
+                        ## add values to list
+                        values.append(precip)
+                        lat_values.append(lat)
+                        lon_values.append(lon)
+            
+            
+            
             ## loop through flattened data array
-            for grid, vis in enumerate(site_cube.data.flatten()):
+            for lon, lat, vis in zip(lon_values, lat_values, values):
                     
                 ## if value is masked, do not add to dict
                 if type(gust) == np.ma.core.MaskedConstant:
@@ -112,7 +140,8 @@ def get_stats(index, site, shape_file):
                     stats["month"].append(month_str)
                     stats["day"].append(day_str)
                     stats["hour"].append(hour_str)
-                    stats["grid_square"].append(grid)
+                    stats["longitude"].append(lon)
+                    stats["latitude"].append(lat)
                     stats["vis"].append(vis)
     
     
