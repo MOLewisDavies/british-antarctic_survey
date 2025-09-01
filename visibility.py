@@ -128,7 +128,7 @@ def get_stats(index, site, shape_file):
             for lon, lat, vis in zip(lon_values, lat_values, values):
                     
                 ## if value is masked, do not add to dict
-                if type(gust) == np.ma.core.MaskedConstant:
+                if type(vis) == np.ma.core.MaskedConstant:
                         
                     pass
                     
