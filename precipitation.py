@@ -71,8 +71,8 @@ def get_stats(index, site, shape_file):
 
     ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
-             "hour": [], 'latitude': [], 
-             'longitude': [], "precip": []}
+             "hour": [], 'latitude': [], 'longitude': [], 
+             "precip": []}
     
     ## loop through precipitation files
     for file in precip_files:
@@ -113,23 +113,14 @@ def get_stats(index, site, shape_file):
                     
                     else:
                         
-                        ## add values to list
-                        values.append(precip)
-                        lat_values.append(lat)
-                        lon_values.append(lon)
-                    
-
-                    
-            for lon, lat, precip in zip(lon_values, lat_values, values):
-                
-                print(full_dt)
-                stats["full_date"].append(full_dt)
-                stats["month"].append(month_str)
-                stats["day"].append(day_str)
-                stats["hour"].append(hour_str)
-                stats["longitude"].append(lon)
-                stats["latitude"].append(lat)
-                stats["precip"].append(precip)   
+                        print(full_dt)
+                        stats["full_date"].append(full_dt)
+                        stats["month"].append(month_str)
+                        stats["day"].append(day_str)
+                        stats["hour"].append(hour_str)
+                        stats["longitude"].append(lon)
+                        stats["latitude"].append(lat)
+                        stats["precip"].append(precip)    
     
     ## turn dict into dataframe   
     site_df = pd.DataFrame(stats)
