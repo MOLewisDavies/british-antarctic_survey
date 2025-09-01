@@ -96,37 +96,29 @@ def get_stats(index, site, shape_file):
             month_str = full_dt.strftime("%m")
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
-        
-            values = []
-            lat_values = []
-            lon_values = []
             
             for site_cube in site_cube.slices_over(['longitude', 'latitude']):
                 
-                lats = site_cube.coord('latitude').points
-                lons = site_cube.coord('longitude').points
+                lat = site_cube.coord('latitude').points[0]
+                lon = site_cube.coord('longitude').points[0]
+                vis = site_cube.data.flatten()[0]
                 
-                ## loop through flattened data array 
-                for lat, lon, vis in zip(lats, lons, site_cube.data.flatten()):
-
-                    
-                    ## if value is masked, do not add to dict
-                    if type(vis) == np.ma.core.MaskedConstant:
+                if type(vis) == np.ma.core.MaskedConstant:
                         
-                        pass
+                    pass
                     
-                    else:
+                else:
                         
-                        ## add values to list
-                        ## add values to dictionary
-                        print(full_dt)
-                        stats["full_date"].append(full_dt)
-                        stats["month"].append(month_str)
-                        stats["day"].append(day_str)
-                        stats["hour"].append(hour_str)
-                        stats["longitude"].append(lon)
-                        stats["latitude"].append(lat)
-                        stats["vis"].append(vis)
+                    ## add values to list
+                    ## add values to dictionary
+                    print(full_dt)
+                    stats["full_date"].append(full_dt)
+                    stats["month"].append(month_str)
+                    stats["day"].append(day_str)
+                    stats["hour"].append(hour_str)
+                    stats["longitude"].append(lon)
+                    stats["latitude"].append(lat)
+                    stats["vis"].append(vis)
     
     ## turn dict into dataframe   
     site_df = pd.DataFrame(stats)
