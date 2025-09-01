@@ -2,6 +2,8 @@
 
 script to analyse precipitaion data from era5
 
+threshold for precipiation used = 0.2mm/hr
+
 functions in file:
 
 main(): runs other functions 
@@ -46,7 +48,7 @@ def main():
         for index, site in enumerate(SITES):
 
             ## path for csv files
-            csv_file = Path(f"csv_ouputs/precip_{site}_stats.csv") 
+            csv_file = Path(f"csv_ouputs/precip_{site}_stats_grid_test.csv") 
             
             ## checks if csv file exists
             if csv_file.is_file():
@@ -67,10 +69,10 @@ def main():
 ##  get data from era 5
 def get_stats(index, site, shape_file):
 
-    
     ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
-                 "hour": [], "grid_square": [], "precip": []}
+             "hour": [], "grid_square": [], 'latitude': [], 
+             'longitude': [], "precip": []}
     
     ## loop through precipitation files
     for file in precip_files:
@@ -91,30 +93,49 @@ def get_stats(index, site, shape_file):
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
             
-            ## loop through flattened data array 
-            for grid, precip in enumerate(site_cube.data.flatten()):
+            values = []
+            lat_values = []
+            lon_values = []
+            
+            for site_cube in site_cube.slices_over(['longitude', 'latitude']):
                 
-                ## if value is masked, do not add to dict
-                if type(precip) == np.ma.core.MaskedConstant:
-                    
-                    pass
+                lats = site_cube.coord('latitude').points
+                lons = site_cube.coord('longitude').points
                 
-                else:
+                ## loop through flattened data array 
+                for lat, lon, precip in zip(lats, lons, site_cube.data.flatten()):
+
                     
-                    ## add values to dictionary
-                    print(full_dt)
-                    stats["full_date"].append(full_dt)
-                    stats["month"].append(month_str)
-                    stats["day"].append(day_str)
-                    stats["hour"].append(hour_str)
-                    stats["grid_square"].append(grid)
-                    stats["precip"].append(precip)
-                 
+                    ## if value is masked, do not add to dict
+                    if type(precip) == np.ma.core.MaskedConstant:
+                        
+                        pass
+                    
+                    else:
+                        
+                        ## add values to list
+                        values.append(precip)
+                        lat_values.append(lat)
+                        lon_values.append(lon)
+                    
+
+                    
+            for lon, lat, precip in zip(lon_values, lat_values, values):
+                
+                print(full_dt)
+                stats["full_date"].append(full_dt)
+                stats["month"].append(month_str)
+                stats["day"].append(day_str)
+                stats["hour"].append(hour_str)
+                stats["longitude"].append(lon)
+                stats["latitude"].append(lat)
+                stats["precip"].append(precip)   
+    
     ## turn dict into dataframe   
     site_df = pd.DataFrame(stats)
-    
+
     ## sort values by date
-    site_df = site_df.sort_values(by='full_dt')
+    site_df = site_df.sort_values(by='full_date')
 
     ## save dataframe as csv
     site_df.to_csv(f'/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/precip_{site}_stats.csv')
