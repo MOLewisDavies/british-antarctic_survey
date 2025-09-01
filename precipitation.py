@@ -71,7 +71,7 @@ def get_stats(index, site, shape_file):
 
     ## empty stats
     stats = {"full_date": [], "month": [], "day": [], 
-             "hour": [], "grid_square": [], 'latitude': [], 
+             "hour": [], 'latitude': [], 
              'longitude': [], "precip": []}
     
     ## loop through precipitation files
