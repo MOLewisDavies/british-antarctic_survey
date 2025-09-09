@@ -93,10 +93,6 @@ def get_stats(index, site, shape_file):
             day_str = full_dt.strftime("%d")
             hour_str = full_dt.strftime("%H")
             
-            values = []
-            lat_values = []
-            lon_values = []
-            
             for site_cube in site_cube.slices_over(['longitude', 'latitude']):
                 
                 lat = site_cube.coord('latitude').points[0]
