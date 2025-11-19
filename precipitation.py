@@ -484,11 +484,11 @@ def make_area_heatmap(area_df):
     ax.add_feature(cartopy.feature.RIVERS)
 
     ## define precip data
-    precip_data = area_df[f"{month}"]
+    precip_data = area_df["total"]
 
     ## create normalised data column
-    area_df["norm"] = (area_df[f"{month}"] - area_df[f"{month}"].min()) / (
-        area_df[f"{month}"].max() - area_df[f"{month}"].min()
+    area_df["norm"] = (area_df["total"] - area_df["total"].min()) / (
+        area_df["total"].max() - area_df["total"].min()
     )
     precip_norm = area_df["norm"]
 
