@@ -245,7 +245,7 @@ def make_area_heatmap(area_df):
     ax.add_collection(patch_collection)
 
     ## add title
-    ax.set_title(f"{month.capitalize()} Flyable Days by Grid Point: All Sites")
+    ax.set_title("Total Flyable Days by Grid Point: All Sites")
 
     ## add colourbar
     plt.colorbar(
