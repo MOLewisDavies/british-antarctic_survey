@@ -181,11 +181,11 @@ def make_area_heatmap(area_df):
     ax.add_feature(cartopy.feature.RIVERS)
 
     ## define precip data
-    wind_speed_data = area_df[f"{month}"]
+    wind_speed_data = area_df["total"]
 
     ## create normalised data column
-    area_df["norm"] = (area_df[f"{month}"] - area_df[f"{month}"].min()) / (
-        area_df[f"{month}"].max() - area_df[f"{month}"].min()
+    area_df["norm"] = (area_df["total"] - area_df["total"].min()) / (
+        area_df["total"].max() - area_df["total"].min()
     )
     wind_speed_norm = area_df["norm"]
 
@@ -213,7 +213,7 @@ def make_area_heatmap(area_df):
     ax.add_collection(patch_collection)
 
     ## add title
-    ax.set_title(f"{month.capitalize()} Flyable Days by Grid Point: All Sites")
+    ax.set_title(f"Total Flyable Days by Grid Point: All Sites")
 
     ## add colourbar
     plt.colorbar(
