@@ -214,11 +214,11 @@ def make_area_heatmap(area_df):
     ax.minorticks_on() """
 
     ## define precip data
-    vis_data = area_df[f"{month}"]
+    vis_data = area_df["total"]
 
     ## create normalised data column
-    area_df["norm"] = (area_df[f"{month}"] - area_df[f"{month}"].min()) / (
-        area_df[f"{month}"].max() - area_df[f"{month}"].min()
+    area_df["norm"] = (area_df["total"] - area_df["total"].min()) / (
+        area_df["total"].max() - area_df["total"].min()
     )
     vis_norm = area_df["norm"]
 
