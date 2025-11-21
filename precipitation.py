@@ -75,7 +75,7 @@ def main():
     # make_heatmap_plots()
 
     get_stats_all_points()
-    # make_all_points_heatmap()
+    # run_all_points_heatmap_func()
 
     # make_heatmap_plots()
     # make_box_whisker_plots('TOP THREE', 'AVERAGE')
@@ -241,7 +241,7 @@ def mask_cube(index, cube, shape_file):
 
 
 ## make all points heatmap
-def make_all_points_heatmap():
+def run_all_points_heatmap_func():
 
     ## create area dictioanry
     area_dict = {
@@ -255,7 +255,7 @@ def make_all_points_heatmap():
     }
 
     ## load dataframe
-    data_df = pd.read_csv(f"csv_ouputs/precip_stats_all_points.csv")
+    data_df = pd.read_csv(f"/data/scratch/lewis.davies/bas/csv_ouputs/precip_stats_all_points.csv")
 
     ## create flyable file
     flyable_file = count_flyable_days_all_points(data_df)
