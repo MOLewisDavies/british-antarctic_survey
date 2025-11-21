@@ -48,17 +48,22 @@ CSV_PATH = (
     "/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs"
 )
 
+## directory to save plots
 OUTPUT_DIR = "/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/plots"
 
+## month dictionary
 MONTHS = {"jan": 1, "feb": 2, "oct": 10, "nov": 11, "dec": 12}
 
+## creates year list
 YEARS = np.arange(1993, 2024, 1)
 
+## weather parameters 
 VARIABLES = ["Wind Speed", "Gust", "cloud_base", "Visibility", "Precip"]
 
 ## site names
 SITES = ["theron_hills", "provider", "argentina_range"]
 
+## limit combinations (will include "perfect day" once confirmed)
 LIMITS = ["twin_otter"]
 
 
