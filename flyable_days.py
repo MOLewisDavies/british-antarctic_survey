@@ -117,7 +117,7 @@ def count_flyable_days(site, limit, data_df):
 
         else:
 
-            ## define lower thresholds
+            ## define Twin Otter thresholds
             wind_gust_limit = 10
             wind_speed_limit = 10
             vis_limit = 5000
