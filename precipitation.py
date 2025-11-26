@@ -997,11 +997,8 @@ def is_day_flyable(day_df, days):
                 ## return true
                 return True
 
-            ## otherwise
-            else:
-
-                ## return false
-                return False
+    ## return false
+    return False
 
 
 ## makes box plot for subsets of grid points
