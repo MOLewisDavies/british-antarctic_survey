@@ -652,11 +652,8 @@ def is_day_flyable(day_df, days):
                 ## return true
                 return True
 
-            ## otherwise
-            else:
-
-                ## return false
-                return False
+    ## return false
+    return False
 
 
 if __name__ == "__main__":
