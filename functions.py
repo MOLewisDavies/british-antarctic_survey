@@ -52,6 +52,8 @@ def make_heatmap_plots(var):
         ## load dataframe
         data_df = pd.read_csv(f"csv_ouputs/{var}_{site}_stats.csv")
 
+        data_df = create_flying_season(data_df)
+        
         ## create flyable file
         flyable_file = count_flyable_days(data_df, site, var)
 
@@ -507,3 +509,35 @@ def mask_cube(index, cube, shape_file):
 
     ## return masked cube
     return shape_cube
+
+
+def create_flying_season(data_df):
+    """ 
+    Drops Jan, Feb from 1993 and Ocxt, Nov, Dec from 2023 to create 30
+    full flying seasons.
+    
+    Args:
+    
+        data_df (DataFrame): weather variable data.
+        
+    Returns:
+    
+        DataFrame: dataframe with rows dropped.
+    """
+    
+    
+    ## conditions for dropping each month
+    jan_con = (data_df['Year'] == 1993) & (data_df['Month'] == 1)
+    feb_con = (data_df['Year'] == 1993) & (data_df['Month'] == 2)
+    oct_con = (data_df['Year'] == 2023) & (data_df['Month'] == 10)
+    nov_con = (data_df['Year'] == 2023) & (data_df['Month'] == 11)
+    dec_con = (data_df['Year'] == 2023) & (data_df['Month'] == 12)
+    
+    ## list as a set of "or" conditions
+    conditions = (jan_con |  feb_con | oct_con | nov_con | dec_con)
+    
+    ## drop rows from dataframe
+    data_df = data_df.drop(data_df[conditions].index)
+    
+    ## return dataframe
+    return data_df
