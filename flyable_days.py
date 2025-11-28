@@ -24,7 +24,6 @@ import cartopy
 import cartopy.crs as ccrs
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from matplotlib.collections import PatchCollection
 
@@ -169,26 +168,10 @@ def count_flyable_days(site, combo, data_df):
             ## loop through months
             for m_name, m_number in MONTHS.items():
 
-                ## get correct number of days
-                if m_number == 1 or m_number == 10 or m_number == 12:
-
-                    ## define length of specific month
-                    days = np.arange(1, 32, 1)
-
-                ## get correct number of days
-                elif m_number == 2:
-
-                    ## define length of specific month
-                    days = np.arange(1, 29, 1)
-
-                ## else:
-                else:
-
-                    ## define length of specific month
-                    days = np.arange(1, 31, 1)
+                days = m_number[1]
 
                 ## constrain by month
-                month_df = lat_lon_df.loc[data_df["Month"] == m_number]
+                month_df = lat_lon_df.loc[data_df["Month"] == m_number[0]]
 
                 ## define value for flyable list
                 flyable_days = 0
