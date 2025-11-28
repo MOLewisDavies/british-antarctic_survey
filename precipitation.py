@@ -422,26 +422,10 @@ def count_flyable_days_yearly(data_df, site):
                 ## loop through months
                 for m_name, m_number in MONTHS.items():
 
-                    ## get correct number of days
-                    if m_number == 1 or m_number == 10 or m_number == 12:
-
-                        ## define length of specific month
-                        days = np.arange(1, 32, 1)
-
-                    ## get correct number of days
-                    elif m_number == 2:
-
-                        ## define length of specific month
-                        days = np.arange(1, 29, 1)
-
-                    ## else:
-                    else:
-
-                        ## define length of specific month
-                        days = np.arange(1, 31, 1)
+                    days = m_number[1]
 
                     ## constrain by month
-                    month_df = lat_lon_df.loc[data_df["Month"] == m_number]
+                    month_df = lat_lon_df.loc[data_df["Month"] == m_number[0]]
                     
                     flyable_days = 0
                     
@@ -461,7 +445,7 @@ def count_flyable_days_yearly(data_df, site):
                             flyable_days += 1
 
                     ## add total for month and year to dict
-                    flyable_days_dict["month"].append(m_number)
+                    flyable_days_dict["month"].append(m_number[0])
                     flyable_days_dict["flyable_days"].append(flyable_days)
                     flyable_days_dict["year"].append(year)
                     flyable_days_dict["lat"].append(lat)
@@ -532,26 +516,10 @@ def count_flyable_days_all_points(data_df):
             ## loop through months
             for m_name, m_number in MONTHS.items():
 
-                ## get correct number of days
-                if m_number == 1 or m_number == 10 or m_number == 12:
-
-                    ## define length of specific month
-                    days = np.arange(1, 32, 1)
-
-                ## get correct number of days
-                elif m_number == 2:
-
-                    ## define length of specific month
-                    days = np.arange(1, 29, 1)
-
-                ## else:
-                else:
-
-                    ## define length of specific month
-                    days = np.arange(1, 31, 1)
+                days = m_number[1]
 
                 ## constrain by month
-                month_df = lat_lon_df.loc[data_df["Month"] == m_number]
+                month_df = lat_lon_df.loc[data_df["Month"] == m_number[0]]
 
                 ## define value for flyable list
                 flyable_days = 0
@@ -641,7 +609,7 @@ def make_box_whisker_plots(grid_points, d_type):
             for m_name, m_number in MONTHS.items():
 
                 ## constrain by month number
-                year_month_df = year_df.loc[year_df["month"] == m_number]
+                year_month_df = year_df.loc[year_df["month"] == m_number[0]]
 
                 ## check grid_points input
                 if grid_points == "ALL":
@@ -668,7 +636,7 @@ def make_box_whisker_plots(grid_points, d_type):
 
                         ## append data to average dictionary
                         average_dict["year"].append(year)
-                        average_dict["month"].append(m_number)
+                        average_dict["month"].append(m_number[0])
                         average_dict["flyable_days"].append(np.mean(flyable_days))
                         average_dict["site"].append(site)
 
@@ -707,7 +675,7 @@ def make_box_whisker_plots(grid_points, d_type):
 
                         ## append values to dictionary
                         average_dict["year"].append(year)
-                        average_dict["month"].append(m_number)
+                        average_dict["month"].append(m_number[0])
                         average_dict["flyable_days"].append(np.mean(largest_values))
                         average_dict["site"].append(site)
 
@@ -785,7 +753,7 @@ def make_box_whisker_east_west(AREA, d_type):
             for m_name, m_number in MONTHS.items():
 
                 ## constrain by month number
-                year_month_df = year_df.loc[year_df["month"] == m_number]
+                year_month_df = year_df.loc[year_df["month"] == m_number[0]]
 
                 ## get latitude list
                 latitudes = year_month_df["lat"]
@@ -819,7 +787,7 @@ def make_box_whisker_east_west(AREA, d_type):
 
                         ## append values to average dict
                         average_dict["year"].append(year)
-                        average_dict["month"].append(m_number)
+                        average_dict["month"].append(m_number[0])
                         average_dict["flyable_days"].append(np.mean(flyable_days))
                         average_dict["site"].append(site)
 
@@ -858,7 +826,7 @@ def make_box_whisker_east_west(AREA, d_type):
 
                         ## append values to average dict
                         average_dict["year"].append(year)
-                        average_dict["month"].append(m_number)
+                        average_dict["month"].append(m_number[0])
                         average_dict["flyable_days"].append(np.mean(flyable_days))
                         average_dict["site"].append(site)
 
