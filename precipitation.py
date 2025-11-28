@@ -2,7 +2,7 @@
 
 script to analyse precipitaion data from era5
 
-threshold for precipiation used = 0.0005m/hr
+threshold for precipiation used = 0.1mm/hr
 
 functions in file:
 
@@ -32,7 +32,7 @@ from matplotlib.collections import PatchCollection
 
 ## import fuctions and constants
 import functions as func
-from constants import BAS_PATH, SHP_FILE, SITES, YEARS, MONTHS
+from constants import BAS_PATH, SHP_FILE, SITES, YEARS, MONTHS, MONTH_DAYS
 
 warnings.filterwarnings("ignore")
 
@@ -98,6 +98,11 @@ def process_data():
 
 ## get data from era 5
 def get_stats_all_points():
+    """ 
+    Creates dataframe of all grid points in ourly era5 data.
+    
+    """
+
 
     big_df = pd.DataFrame()
 
@@ -139,7 +144,7 @@ def get_stats_all_points():
 
     ## save dataframe as csv
     big_df.to_csv(
-        f"/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/csv_ouputs/precip_stats_all_points.csv"
+        f"{BAS_PATH}/csv_ouputs/precip_stats_all_points.csv"
     )
 
 
@@ -212,6 +217,10 @@ def get_stats(index, site, shape_file):
 
 ## make all points heatmap
 def run_all_points_heatmap_func():
+    """ 
+    Runs count_flyable_days_all_points, to make_all_points_heatmap.
+    
+    """
 
     ## create area dictioanry
     area_dict = {
@@ -225,7 +234,7 @@ def run_all_points_heatmap_func():
     }
 
     ## load dataframe
-    data_df = pd.read_csv(f"/data/scratch/lewis.davies/bas/csv_ouputs/precip_stats_all_points.csv")
+    data_df = pd.read_csv("/data/scratch/lewis.davies/bas/csv_ouputs/precip_stats_all_points.csv")
 
     ## create flyable file
     flyable_file = count_flyable_days_all_points(data_df)
@@ -258,27 +267,27 @@ def run_all_points_heatmap_func():
 
 ## make heatmap of whole area
 def make_all_points_heatmap(area_df):
+    """ 
+    Makes heatmap for all grid points in data.
+    
+    ARGS:
+    
+        area_df (DataFrame): weather data
+    """
 
-    days = (
-        max(area_df["jan"])
-        + max(area_df["feb"])
-        + max(area_df["oct"])
-        + max(area_df["nov"])
-        + max(area_df["dec"])
-    )
-    print(days)
+    # month list for creating plots
+    months = ["total", "jan", "feb", "oct", "nov", "dec"]
 
     ## create total column
     area_df["total"] = (
-        (
             area_df["jan"]
             + area_df["feb"]
             + area_df["oct"]
             + area_df["nov"]
             + area_df["dec"]
         )
-        / days
-    ) * 100
+    
+    
     ## get longitude and latitudes
     lons, lats = area_df["lon"], area_df["lat"]
 
@@ -287,75 +296,87 @@ def make_all_points_heatmap(area_df):
     lat_height = max(lats) - min(lats)
     plot_aspect = lat_height / lon_width
 
-    # set up axes
-    fig = plt.figure(figsize=(12, 12 * plot_aspect))
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    for month in months:
+        
+        # set up axes
+        fig = plt.figure(figsize=(12, 12 * plot_aspect))
+        ax = plt.axes(projection=ccrs.PlateCarree())
 
-    # Set extent of plot
-    ax.set_extent(
-        [min(lons) - 0.5, max(lons) + 0.5, min(lats) - 0.5, max(lats) + 0.5],
-        ccrs.PlateCarree(),
-    )
-
-    # Draw coastlines and background stuff
-    ax.add_feature(cartopy.feature.LAND)
-    ax.add_feature(cartopy.feature.OCEAN)
-    ax.add_feature(cartopy.feature.COASTLINE, linewidth=0.2)
-    ax.add_feature(cartopy.feature.BORDERS, linestyle=":", linewidth=0.3)
-    ax.add_feature(cartopy.feature.LAKES, alpha=0.5)
-    ax.add_feature(cartopy.feature.RIVERS)
-
-    ## define precip data
-    precip_data = area_df[f"{month}"]
-
-    ## create normalised data column
-    area_df["norm"] = (area_df[f"{month}"] - area_df[f"{month}"].min()) / (
-        area_df[f"{month}"].max() - area_df[f"{month}"].min()
-    )
-    precip_norm = area_df["norm"]
-
-    ## get colour map
-    cmap = cm.get_cmap("viridis")
-
-    ## add gridpoint crosses to plot
-    # sns.scatterplot(data = flyable_df, x=lons, y=lats, color='red', size=200, marker='+', ax=ax)
-
-    ## create patch collection for making heatmap
-    patches = [
-        plt.Rectangle(
-            (lon - 0.125, lat - 0.125), 0.25, 0.25, alpha=1, facecolor=cmap(precip)
+        # Set extent of plot
+        ax.set_extent(
+            [min(lons) - 0.5, max(lons) + 0.5, min(lats) - 0.5, max(lats) + 0.5],
+            ccrs.PlateCarree(),
         )
-        for lon, lat, precip in zip(lons, lats, precip_norm)
-    ]
-    patch_collection = PatchCollection(patches, match_original=True)
 
-    ## create scalar mappable for colourbar
-    norm = plt.Normalize(precip_data.min(), precip_data.max())
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        # Draw coastlines and background stuff
+        ax.add_feature(cartopy.feature.LAND)
+        ax.add_feature(cartopy.feature.OCEAN)
+        ax.add_feature(cartopy.feature.COASTLINE, linewidth=0.2)
+        ax.add_feature(cartopy.feature.BORDERS, linestyle=":", linewidth=0.3)
+        ax.add_feature(cartopy.feature.LAKES, alpha=0.5)
+        ax.add_feature(cartopy.feature.RIVERS)
 
-    ## add heatmap patch collection to axes
-    ax.add_collection(patch_collection)
+        ## define precip data
+        precip_data = (area_df[f"{month}"] / MONTH_DAYS[f'{month}'])*100
 
-    ## add title
-    ax.set_title(f"{month.capitalize()} Flyable Days by Grid Point: All Sites")
+        ## create normalised data column
+        area_df["norm"] = (area_df[f"{month}"] - area_df[f"{month}"].min()) / (
+            area_df[f"{month}"].max() - area_df[f"{month}"].min()
+        )
+        precip_norm = area_df["norm"]
 
-    ## add colourbar
-    plt.colorbar(
-        sm,
-        ax=ax,
-        label="No. of Flyable Days",
-        ticks=[precip_data.min(), precip_data.median(), precip_data.max()],
-    )
+        ## get colour map
+        cmap = cm.get_cmap("viridis")
 
-    ## save figure
-    fig.savefig(
-        f"/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/plots/all_data_precip_heatmap.png"
-    )
+        ## create patch collection for making heatmap
+        patches = [
+            plt.Rectangle(
+                (lon - 0.125, lat - 0.125), 0.25, 0.25, alpha=1, facecolor=cmap(precip)
+            )
+            for lon, lat, precip in zip(lons, lats, precip_norm)
+        ]
+        patch_collection = PatchCollection(patches, match_original=True)
+
+        ## create scalar mappable for colourbar
+        norm = plt.Normalize(precip_data.min(), precip_data.max())
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+
+        ## add heatmap patch collection to axes
+        ax.add_collection(patch_collection)
+
+        ## add title
+        ax.set_title(f"{month.capitalize()} Flyable Days by Grid Point: All Sites")
+
+        ## add colourbar
+        plt.colorbar(
+            sm,
+            ax=ax,
+            label="No. of Flyable Days",
+            ticks=[precip_data.min(), precip_data.median(), precip_data.max()],
+        )
+
+        ## save figure
+        fig.savefig(
+            f"/{BAS_PATH}/plots/{month}_all_data_precip_heatmap.png"
+        )
 
 
 ## count flyable days per year+month for box plots
 def count_flyable_days_yearly(data_df, site):
-
+    """ 
+    Creates flyable file to be used for making box plots.
+    
+    ARGS:
+    
+        data_df (DataFrame): weather data.
+        site (str): Antarctica site.
+        
+    Returns:
+    
+        .txt file: pickled dictionary file path.
+    """
+    
+    
     ## define flyable file path
     flyable_file = Path(f"csv_ouputs/precip_{site}_fly_days_years.txt")
 
@@ -421,7 +442,9 @@ def count_flyable_days_yearly(data_df, site):
 
                     ## constrain by month
                     month_df = lat_lon_df.loc[data_df["Month"] == m_number]
-
+                    
+                    flyable_days = 0
+                    
                     ## loop through days in month
                     for day in days:
 
@@ -429,10 +452,10 @@ def count_flyable_days_yearly(data_df, site):
                         day_df = month_df.loc[month_df["Day"] == day]
 
                         ## get True or False for a flyable day
-                        flyable = is_day_flyable(day_df, days)
+                        flyable = func.is_day_flyable(day_df, 'Precip')
 
                         ## check if day is flyable after analysis
-                        if flyable == True:
+                        if flyable:
 
                             ## add 1 to total
                             flyable_days += 1
@@ -455,9 +478,21 @@ def count_flyable_days_yearly(data_df, site):
 
 ## count flyable days for all grid points in era5 files
 def count_flyable_days_all_points(data_df):
-
+    """ 
+    Creates flyable days file for all points in era5 data files..
+    
+    ARGS:
+    
+        data_df (DataFrame): weather data.
+        
+    Returns:
+    
+        .txt file: pickled dictionary file path.
+    """
+    
+    
     ## define flyable file path
-    flyable_file = Path(f"csv_ouputs/precip_all_points_fly_days.txt")
+    flyable_file = Path("csv_ouputs/precip_all_points_fly_days.txt")
 
     ## check if file exists
     if flyable_file.is_file():
@@ -534,10 +569,10 @@ def count_flyable_days_all_points(data_df):
                         day_df = year_month_df.loc[year_month_df["Day"] == day]
 
                         ## get True or False for a flyable day
-                        flyable = is_day_flyable(day_df, days)
+                        flyable = func.is_day_flyable(day_df, 'Precip')
 
                         ## check if day is flyable after analysis
-                        if flyable == True:
+                        if flyable:
 
                             ## add 1 to total
                             flyable_days += 1
@@ -551,7 +586,7 @@ def count_flyable_days_all_points(data_df):
             flyable_days_dict["lon"].append(lon)
 
         ## pickle out dictionary
-        with open(f"csv_ouputs/precip_all_points_fly_days.txt", "wb") as file:
+        with open("csv_ouputs/precip_all_points_fly_days.txt", "wb") as file:
 
             pickle.dump(flyable_days_dict, file, protocol=2)
 
@@ -561,7 +596,16 @@ def count_flyable_days_all_points(data_df):
 
 ## makes box plot for subsets of grid points
 def make_box_whisker_plots(grid_points, d_type):
-
+    """ 
+    Makes box and whisker plots for  different sets of grid points.
+    
+    ARGS:
+    
+        grid_points (str): grid_point subset (ALL or TOP THREE)
+        d_type (str): analysis method (EVERY or AVERAGE)
+    """
+    
+    
     ## set up figure
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -694,6 +738,15 @@ def make_box_whisker_plots(grid_points, d_type):
 
 ## makes box plot for east/west area split
 def make_box_whisker_east_west(AREA, d_type):
+    """ 
+    Makes box and whisker plots for East and West grid points.
+    
+    ARGS:
+    
+        AREA (str): analysis area (EAST or WEST)
+        d_type (str): analysis method (EVERY or AVERAGE)
+    """
+
 
     ## set up plot
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -741,6 +794,7 @@ def make_box_whisker_east_west(AREA, d_type):
                 if AREA == "WEST":
 
                     ## constrain to western side of site
+                    ## smallest 1/2 of lats = western half of shape
                     west_df = year_month_df.nsmallest(round(len(latitudes) / 2), "lat")
 
                     ## create list of flyable days
@@ -779,6 +833,7 @@ def make_box_whisker_east_west(AREA, d_type):
                 elif AREA == "EAST":
 
                     ## constrain to eastern side of site
+                    ## largest 1/2 of lats = western half of shape
                     east_df = year_month_df.nlargest(round(len(latitudes) / 2), "lat")
 
                     ## create list of flyable days
@@ -817,7 +872,7 @@ def make_box_whisker_east_west(AREA, d_type):
     area_df = pd.concat(df_list)
 
     ## create box plot
-    box_plot = sns.boxplot(data=area_df, x="month", y="flyable_days", hue="site", ax=ax)
+    sns.boxplot(data=area_df, x="month", y="flyable_days", hue="site", ax=ax)
 
     ## set title
     ax.set_title(
@@ -828,7 +883,7 @@ def make_box_whisker_east_west(AREA, d_type):
 
     ## save figure
     fig.savefig(
-        f"/home/users/lewis.davies/british_antarctic_survey/analysis_scripts/plots/monhtly_precip_whisker_plot_{AREA}_{d_type}.png"
+        f"{BAS_PATH}/plots/monhtly_precip_whisker_plot_{AREA}_{d_type}.png"
     )
 
 
