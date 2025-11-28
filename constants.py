@@ -1,7 +1,8 @@
 import numpy as np
 
 ## month dictionary
-MONTHS = {"jan": 1, "feb": 2, "oct": 10, "nov": 11, "dec": 12}
+MONTHS = {"jan": [1, 31], "feb": [2, 28], "oct": [10, 31],
+          "nov": [11, 30], "dec": [12, 31]}
 
 ## years list
 YEARS = np.arange(1993, 2024, 1)
@@ -22,5 +23,8 @@ MONTH_DAYS = {'total': 4681, 'jan': 961, 'feb': 868,
 ## weather variables
 VARIABLES = ["Wind_Speed", "Gust", "cloud_base", "Visibility", "Precip"]
 
-## limit combonations
+## limit combonations   
 COMBOS = ["perfect", "twin_otter"]
+
+LIMITS = {'Precip': 0.0005, 'Wind Speed': 10, 'cloud_base': 1100,
+              'Visibility': 5000, 'Gust': 10}
