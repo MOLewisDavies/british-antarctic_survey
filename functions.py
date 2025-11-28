@@ -16,21 +16,19 @@ import cartopy
 import cartopy.crs as ccrs
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from cartopy.io.shapereader import Reader
 from iris.util import mask_cube_from_shapefile
 from matplotlib.collections import PatchCollection
 
-from constants import MONTH_DAYS, MONTHS, SITES, YEARS, BAS_PATH
+from constants import MONTH_DAYS, MONTHS, SITES, YEARS, BAS_PATH, LIMITS
 
 
 ## make plots
 def make_heatmap_plots(var):
 
     """ 
-    Runs count_flyable_days, is_day_flyable to make_site_heatmap & 
-    make_area_heatmap.
+    Runs count_flyable_days, to make_site_heatmap & make_area_heatmap.
     
     Args:
 
@@ -323,10 +321,6 @@ def count_flyable_days(data_df, site, var):
         .txt file:  pickled dictionary of flyable days
     """
     
-    
-    limits = {'Precip': 0.0005, 'Wind Speed': 10, 'cloud_base': 1100,
-              'Visibility': 5000, 'Gust': 10}
-    
     ## define flyable file path
     flyable_file = Path(f"csv_ouputs/{var}_{site}_fly_days.txt")
 
@@ -370,26 +364,10 @@ def count_flyable_days(data_df, site, var):
             ## loop through months
             for m_name, m_number in MONTHS.items():
 
-                ## get correct number of days
-                if m_number == 1 or m_number == 10 or m_number == 12:
-
-                    ## define length of specific month
-                    days = np.arange(1, 32, 1)
-
-                ## get correct number of days
-                elif m_number == 2:
-
-                    ## define length of specific month
-                    days = np.arange(1, 29, 1)
-
-                ## else:
-                else:
-
-                    ## define length of specific month
-                    days = np.arange(1, 31, 1)
+                days = m_number[1]
 
                 ## constrain by month
-                month_df = lat_lon_df.loc[data_df["Month"] == m_number]
+                month_df = lat_lon_df.loc[data_df["Month"] == m_number[0]]
 
                 ## define value for flyable list
                 flyable_days = 0
@@ -407,7 +385,7 @@ def count_flyable_days(data_df, site, var):
                         day_df = year_month_df.loc[year_month_df["Day"] == day]
 
                         ## get True or False for a flyable day
-                        flyable = is_day_flyable(day_df, var, limits)
+                        flyable = is_day_flyable(day_df, var)
 
                         ## check if day is flyable after analysis
                         if flyable:
@@ -432,7 +410,7 @@ def count_flyable_days(data_df, site, var):
 
 
 ## checks if day is flyable against threshold
-def is_day_flyable(day_df, var, limits):
+def is_day_flyable(day_df, var):
 
     """ 
     Checks weather data against criteria for 2 hour windows.
@@ -448,7 +426,7 @@ def is_day_flyable(day_df, var, limits):
         True or False
     """
     
-    limit = limits[f'{var}']
+    limit = LIMITS[f'{var}']
     
     ## loopp through dataframe rows
     for index, row in day_df.iterrows():
