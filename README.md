@@ -10,3 +10,5 @@ Repository contains all files relating to a British Antarctic survey weather ana
 4. wind_gust.py - processes ERA5 instantaneous wind gust files
 5. visbility.py - processes ERA5 temperature, liquid water and ice water content files to calculate a visiblity approximation
 6. cloud.py - processes ERA5 'fraction of cloud cover' files to approximate cloud base height
+7. functions.py - module containing functions for plotting and counting flyable days
+8. constants.py - module containing constants used in multiple files
