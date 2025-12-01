@@ -102,15 +102,12 @@ def make_area_heatmap(area_df, var):
     
     ## create total column
     area_df["total"] = (
-        (
             area_df["jan"]
             + area_df["feb"]
             + area_df["oct"]
             + area_df["nov"]
             + area_df["dec"]
         )
-        / MONTH_DAYS['total']
-    ) * 100
     
     
     ## get longitude and latitudes
