@@ -175,7 +175,7 @@ def make_area_heatmap(area_df, var):
         plt.colorbar(
             sm,
             ax=ax,
-            label="No. of Flyable Days",
+            label="Flyable Days (%)",
             ticks=[flyable_data.min(), 
                    flyable_data.median(), 
                    flyable_data.max()],
@@ -183,7 +183,8 @@ def make_area_heatmap(area_df, var):
         
         ## save figure
         fig.savefig(
-            f"{BAS_PATH}/plots/{var}_{month}_all_sites_heatmap.png"
+            f"{BAS_PATH}/plots/{var}_{month}_all_sites_heatmap.png",
+                   bbox_inches = 'tight'
         )
         
         
@@ -291,7 +292,7 @@ def make_site_heatmap(flyable_df, site, var):
         plt.colorbar(
             sm,
             ax=ax,
-            label="No. of Flyable Days",
+            label="Flyable Days (%)",
             ticks=[flyable_data.min(), 
                    flyable_data.median(), 
                    flyable_data.max()],
@@ -299,7 +300,8 @@ def make_site_heatmap(flyable_df, site, var):
 
         ## save figure
         fig.savefig(
-            f"{BAS_PATH}/plots/{var}_{month}_{site}_heatmap.png"
+            f"{BAS_PATH}/plots/{var}_{month}_{site}_heatmap.png",
+                   bbox_inches = 'tight'
         )
         
         
