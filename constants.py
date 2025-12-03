@@ -1,8 +1,9 @@
 import numpy as np
 
 ## month dictionary
-MONTHS = {"jan": [1, 31], "feb": [2, 28], "oct": [10, 31],
-          "nov": [11, 30], "dec": [12, 31]}
+MONTHS = {"jan": [1, np.arange(1, 32, 1)], "feb": [2, np.arange(1, 29, 1)], 
+          "oct": [10, np.arange(1, 32, 1)], "nov": [11, np.arange(1, 31, 1)], 
+          "dec": [12, np.arange(1, 32, 1)]}
 
 ## years list
 YEARS = np.arange(1993, 2024, 1)
@@ -23,8 +24,10 @@ MONTH_DAYS = {'total': 4681, 'jan': 961, 'feb': 868,
 ## weather variables
 VARIABLES = ["Wind_Speed", "Gust", "cloud_base", "Visibility", "Precip"]
 
-## limit combonations   
+## limit combinations   
 COMBOS = ["perfect", "twin_otter"]
 
-LIMITS = {'Precip': 0.0005, 'Wind Speed': 10, 'cloud_base': 1100,
-              'Visibility': 5000, 'Gust': 10}
+## limits for individual files [twin_otter, perfect]
+LIMITS = {'Precip': [0.0005, 0.0005], 'Wind Speed': [10, 10], 
+               'cloud_base': [1100, 1800], 'Visibility': [5000, 10000], 
+               'Gust': [15, 15]}
