@@ -32,7 +32,8 @@ from matplotlib.collections import PatchCollection
 
 ## import fuctions and constants
 import functions as func
-from constants import BAS_PATH, SHP_FILE, SITES, YEARS, MONTHS, MONTH_DAYS
+from constants import (BAS_PATH, SHP_FILE, SITES, YEARS, MONTHS, 
+                        MONTH_DAYS, COMBOS)
 
 warnings.filterwarnings("ignore")
 
@@ -53,7 +54,10 @@ def main():
     """
     
     #process_data()
-    func.make_heatmap_plots('Precip')  
+
+    for combo in COMBOS:
+        
+        func.make_heatmap_plots(combo, 'Precip')  
     
     
     #get_stats_all_points()
