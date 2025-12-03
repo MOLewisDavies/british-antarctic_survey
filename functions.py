@@ -21,17 +21,19 @@ from cartopy.io.shapereader import Reader
 from iris.util import mask_cube_from_shapefile
 from matplotlib.collections import PatchCollection
 
-from constants import MONTH_DAYS, MONTHS, SITES, YEARS, BAS_PATH, LIMITS
+from constants import (MONTH_DAYS, MONTHS, SITES, YEARS, BAS_PATH, 
+                       LIMITS)
 
 
 ## make plots
-def make_heatmap_plots(var):
+def make_heatmap_plots(combo, var):
 
     """ 
     Runs count_flyable_days, to make_site_heatmap & make_area_heatmap.
     
     Args:
 
+        combo (str): specific combination of weather parameters.
         var (str): weather parameter.
     """
     
@@ -55,7 +57,7 @@ def make_heatmap_plots(var):
         data_df = create_flying_season(data_df)
         
         ## create flyable file
-        flyable_file = count_flyable_days(data_df, site, var)
+        flyable_file = count_flyable_days(combo, data_df, site, var)
 
         ## open flyable daya dict file
         with open(flyable_file, "rb") as file:
@@ -75,17 +77,17 @@ def make_heatmap_plots(var):
                 area_dict[f"{key}"].append(row[f"{key}"].item())
 
         ## make heatmap for sites based on months and totals
-        make_site_heatmap(flyable_df, var, site)
+        make_site_heatmap(flyable_df, site, combo, var)
 
     ## create dataframe from area dictionary
     area_df = pd.DataFrame(area_dict)
 
     ## make heatmap of whole area
-    make_area_heatmap(area_df, var)
+    make_area_heatmap(area_df, combo, var)
     
 
 ## make heatmap of all sites
-def make_area_heatmap(area_df, var):
+def make_area_heatmap(area_df, combo, var):
 
     """ 
     Makes heatmap of all 3 sites on one plot for each month and all
@@ -94,6 +96,7 @@ def make_area_heatmap(area_df, var):
     Args:
     
         area_df (DataFrame): dataframe of flyable days by grid point.
+        combo (str): specific combination of weather parameters.
         var (str): weather parameter.
     """
     
@@ -176,20 +179,20 @@ def make_area_heatmap(area_df, var):
             sm,
             ax=ax,
             label="Flyable Days (%)",
-            ticks=[flyable_data.min(), 
+            ticks=[50, 
                    flyable_data.median(), 
-                   flyable_data.max()],
+                   100]
         )
         
         ## save figure
         fig.savefig(
-            f"{BAS_PATH}/plots/{var}_{month}_all_sites_heatmap.png",
-                   bbox_inches = 'tight'
+            f"{BAS_PATH}/plots/{var}_{combo}_{month}_all_sites_heatmap.png",
+            bbox_inches = 'tight'
         )
         
         
 ## make heatmap for each site individually
-def make_site_heatmap(flyable_df, site, var):
+def make_site_heatmap(flyable_df, site, combo, var):
 
     """ 
     Makes heatmap of all individual sites for each month and all months.
@@ -198,6 +201,7 @@ def make_site_heatmap(flyable_df, site, var):
     
         flyable_df (DataFrame): flyable days by grid point and site.
         site (str): Antarctica site.
+        combo (str): specific combination of weather parameters
         var (str): weather parameter.
     """
 
@@ -292,7 +296,7 @@ def make_site_heatmap(flyable_df, site, var):
         plt.colorbar(
             sm,
             ax=ax,
-            label="Flyable Days (%)",
+            label="No. of Flyable Days",
             ticks=[flyable_data.min(), 
                    flyable_data.median(), 
                    flyable_data.max()],
@@ -300,19 +304,19 @@ def make_site_heatmap(flyable_df, site, var):
 
         ## save figure
         fig.savefig(
-            f"{BAS_PATH}/plots/{var}_{month}_{site}_heatmap.png",
-                   bbox_inches = 'tight'
+            f"{BAS_PATH}/plots/{var}_{combo}_{month}_{site}_heatmap.png"
         )
         
         
 ## count flyable days for heatmap plots
-def count_flyable_days(data_df, site, var):
+def count_flyable_days(combo, data_df, site, var):
     
     """ 
     Counts flyable days per grid point for each Antarctica site.
     
     Args:
-    
+
+        combo (str): specific combination of weather parameters
         data_df (DataFrame): weather parameter stats.
         site (str): Antarctica site.
         var (str): weather parameter.
@@ -323,7 +327,7 @@ def count_flyable_days(data_df, site, var):
     """
     
     ## define flyable file path
-    flyable_file = Path(f"csv_ouputs/{var}_{site}_fly_days.txt")
+    flyable_file = Path(f"csv_ouputs/{var}_{combo}_{site}_fly_days.txt")
 
     ## get list of unique lat lon pairs
     lat_lon_list = data_df[["Latitude", "Longitude"]].drop_duplicates()
@@ -386,7 +390,7 @@ def count_flyable_days(data_df, site, var):
                         day_df = year_month_df.loc[year_month_df["Day"] == day]
 
                         ## get True or False for a flyable day
-                        flyable = is_day_flyable(day_df, var)
+                        flyable = is_day_flyable(day_df, combo, var)
 
                         ## check if day is flyable after analysis
                         if flyable:
@@ -402,7 +406,7 @@ def count_flyable_days(data_df, site, var):
             flyable_days_dict["lon"].append(lon)
 
         ## pickle out dictionary
-        with open(f"csv_ouputs/{var}_{site}_fly_days.txt", "wb") as file:
+        with open(f"csv_ouputs/{var}_{combo}_{site}_fly_days.txt", "wb") as file:
 
             pickle.dump(flyable_days_dict, file, protocol=2)
 
@@ -410,8 +414,13 @@ def count_flyable_days(data_df, site, var):
     return flyable_file
 
 
+def count_flyable_days_yearly(data_df, site, var):
+    
+    return
+
+
 ## checks if day is flyable against threshold
-def is_day_flyable(day_df, var):
+def is_day_flyable(day_df, combo, var):
 
     """ 
     Checks weather data against criteria for 2 hour windows.
@@ -420,19 +429,26 @@ def is_day_flyable(day_df, var):
     
         day_df (DataFrame): weather data for 1 day
         var (str): weather parameter
-        limits (dict): weather parameter criteria.
+        combo (str): specific combination of weather parameters
         
     Returns:
     
         True or False
     """
     
-    limit = LIMITS[f'{var}']
+    if combo == 'perfect':
+    
+        limit = LIMITS[f'{var}'][1]
+        
+    else:
+        
+        limit = LIMITS[f'{var}'][0]
+    
     
     ## loopp through dataframe rows
     for index, row in day_df.iterrows():
 
-        ## check if row is hour 23
+        ## check if row is hour 20 - utc-3 time
         if row["Hour"] == 23:
 
             ## skip row as there's no pair --- change later to include following morning's hour
