@@ -24,7 +24,7 @@ import pandas as pd
 
 ## import functions module
 import functions as func
-from constants import SHP_FILE, SITES, MONTHS, BAS_PATH
+from constants import SHP_FILE, SITES, MONTHS, BAS_PATH, COMBOS
 
 warnings.filterwarnings("ignore")
 
@@ -48,7 +48,10 @@ def main():
     """
     
     process_data()
-    func.make_heatmap_plots('Visibility')
+
+    for combo in COMBOS:
+        
+        func.make_heatmap_plots(combo, 'Visibility')
 
     return
 
