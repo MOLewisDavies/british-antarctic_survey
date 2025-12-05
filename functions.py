@@ -11,6 +11,7 @@ IMPORTANT: Flyable Days file uses slightly different make_heatmap_plots
 import pickle
 from datetime import datetime, timedelta
 from pathlib import Path
+import numpy as np
 
 import cartopy
 import cartopy.crs as ccrs
@@ -20,6 +21,7 @@ import pandas as pd
 from cartopy.io.shapereader import Reader
 from iris.util import mask_cube_from_shapefile
 from matplotlib.collections import PatchCollection
+import seaborn as sns
 
 from constants import (MONTH_DAYS, MONTHS, SITES, YEARS, BAS_PATH, 
                        LIMITS)
@@ -414,11 +416,6 @@ def count_flyable_days(combo, data_df, site, var):
     return flyable_file
 
 
-def count_flyable_days_yearly(data_df, site, var):
-    
-    return
-
-
 ## checks if day is flyable against threshold
 def is_day_flyable(day_df, combo, var):
 
@@ -526,10 +523,11 @@ def mask_cube(index, cube, shape_file):
     return shape_cube
 
 
+## creates thirty whole flying seasons from 31 years of data
 def create_flying_season(data_df):
     """ 
-    Drops Jan, Feb from 1993 and Ocxt, Nov, Dec from 2023 to create 30
-    full flying seasons.
+    Drops Dec from 92, Jan, Feb, Sept from 93 and Oct, Nov, Dec from 23 to 
+    create 30 full flying seasons.
     
     Args:
     
@@ -542,6 +540,9 @@ def create_flying_season(data_df):
     
     
     ## conditions for dropping each month
+    
+    dec92_con = (data_df['Year'] == 1992) & (data_df['Month'] == 12)
+    sep93_con = (data_df['Year'] == 1993) & (data_df['Month'] == 9)
     jan_con = (data_df['Year'] == 1993) & (data_df['Month'] == 1)
     feb_con = (data_df['Year'] == 1993) & (data_df['Month'] == 2)
     oct_con = (data_df['Year'] == 2023) & (data_df['Month'] == 10)
@@ -549,10 +550,160 @@ def create_flying_season(data_df):
     dec_con = (data_df['Year'] == 2023) & (data_df['Month'] == 12)
     
     ## list as a set of "or" conditions
-    conditions = (jan_con |  feb_con | oct_con | nov_con | dec_con)
+    cons = (jan_con|feb_con|oct_con|nov_con|dec_con|dec92_con|sep93_con)
     
     ## drop rows from dataframe
-    data_df = data_df.drop(data_df[conditions].index)
+    data_df = data_df.drop(data_df[cons].index)
     
     ## return dataframe
     return data_df
+
+
+## make box plots
+def make_box_plot(var, d_type, grid_points):
+    
+    """ 
+    Creates box plot using weather data basedon grid point and analysis 
+    method.
+    
+    ARGS:
+    
+        var (str): Weather variable.
+        d_type (str): Analysis method (takes EVERY or AVERAGE)
+        grid_points (str): No. of gtrid points (takes ALL or TOP THREE)
+    
+    """
+    
+    ## set up axes
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ## empty dataframe list
+    df_list = []
+    
+    ## loop through sites
+    for site in SITES:
+        
+        ## load dataframe
+        data_df = pd.read_csv(f"csv_ouputs/{var}_{site}_stats.csv")
+        
+        ## add site column
+        data_df['site'] = site
+        
+        ## group dataframe by year and month to subset dataframe
+        for data, grouped_df in data_df.groupby(['Year', 'Month']):
+            
+            ## get month name from dict using month number in dataframe
+            m_name = [key for key, val in MONTHS.items() if val[0] == data[1]]
+            
+            ## change month numbers to names in dataframe 
+            grouped_df.loc[grouped_df['Month'] == data[1], 'Month'] = m_name[0]
+            
+            ## if grid points is all
+            if grid_points == 'ALL':
+                
+                ## checks analysis method
+                if d_type == "EVERY":
+                    
+                    ## append dataframe to list
+                    df_list.append(grouped_df)
+                    
+                ## checks analysis method    
+                elif d_type == 'AVERAGE':
+                    
+                    ## set up average dictionary
+                    average_dict = {
+                        "Year": [],
+                        "Month": [],
+                        f"{var}": [],
+                        "site": [],
+                    }
+                    
+                    ## get weather values
+                    values = grouped_df[f'{var}']
+                    
+                    ## append data to average dictionary
+                    average_dict["Year"].append(data[0])
+                    average_dict["Month"].append(m_name[0])
+                    average_dict[f"{var}"].append(np.mean(values))
+                    average_dict["site"].append(site)
+                    
+                    ## create dataframe from dict
+                    average_df = pd.DataFrame(average_dict)
+
+                    ## append dictionary to list
+                    df_list.append(average_df)
+            
+            ## if grid points is top three
+            elif grid_points == "TOP THREE":
+                
+                ## gets dataframe of 3 largest values
+                largest_df = grouped_df.nlargest(3, f'{var}')
+                
+                ## checks analysis method
+                if d_type == "EVERY":
+                    
+                    ## append to list
+                    df_list.append(largest_df)
+                    
+                ## checks analysis method
+                elif d_type == "AVERAGE":
+                    
+                    ## get weather values
+                    values = largest_df[f'{var}']
+                    
+                    ## set up average dictionary
+                    average_dict = {
+                        "Year": [],
+                        "Month": [],
+                        f"{var}": [],
+                        "site": [],
+                    }
+                    
+                     ## append data to average dictionary
+                    average_dict["Year"].append(data[0])
+                    average_dict["Month"].append(m_name[0])
+                    average_dict[f"{var}"].append(np.mean(values))
+                    average_dict["site"].append(site)
+                    
+                    ## create dataframe from dict
+                    average_df = pd.DataFrame(average_dict)
+
+                    ## append dictionary to list
+                    df_list.append(average_df)
+                          
+    ## concat dataframe list
+    area_df = pd.concat(df_list)
+
+    
+    ## create box plot
+    sns.boxplot(data=area_df, x="Month", y=var, 
+                order = ['oct', 'nov', 'dec', 'jan', 'feb'], hue="site",
+                showfliers = True, ax=ax)
+
+    ##  add limits to box plots as lines
+    ax.axhline(y=LIMITS[f'{var}'][0], ls='dashed', color='r', alpha=0.5,
+               label = 'Twin Otter')
+    
+    ax.axhline(y=LIMITS[f'{var}'][1], ls='dashed', color='g', alpha=0.5,
+               label = 'Perfect')
+    
+    ## set title
+    ax.set_title(
+        f"{var} values - {grid_points} grid point(s) - {d_type}",
+        fontsize=18,
+        fontweight="bold",
+    )
+
+    ## save figure
+    fig.savefig(
+        f"{BAS_PATH}/plots/monhtly_{var}_whisker_plot_{grid_points}_{d_type}.png",
+        bbox_inches = 'tight'
+    )
+                    
+                    
+                
+                
+            
+
+        
+    
