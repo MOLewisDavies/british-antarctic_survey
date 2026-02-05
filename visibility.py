@@ -24,7 +24,7 @@ import pandas as pd
 
 ## import functions module
 import functions as func
-from constants import SHP_FILE, SITES, MONTHS, BAS_PATH, COMBOS
+from constants import BAS_PATH, MONTHS, SHP_FILE, SITES
 
 warnings.filterwarnings("ignore")
 
@@ -32,10 +32,12 @@ warnings.filterwarnings("ignore")
 TEMP_F_PATH = "/data/scratch/lewis.davies/bas/temperature"
 VIS_F_PATH = "/data/scratch/lewis.davies/bas/visibility"
 
+## file names
 LWC_F_NAME = "liq_water_*"
 IWC_F_NAME = "ice_water_*"
 TEMP_F_NAME = "*.grib"
 
+## lists of files
 TEMP_FILES = sorted(glob.glob(f"{TEMP_F_PATH}/{TEMP_F_NAME}"))
 LWC_FILES = sorted(glob.glob(f"{VIS_F_PATH}/{LWC_F_NAME}"))
 IWC_FILES = sorted(glob.glob(f"{VIS_F_PATH}/{IWC_F_NAME}"))
@@ -47,13 +49,18 @@ def main():
     Runs all functions within file.
     """
     
-    process_data()
+    #process_data()
+    
+    #for combo in COMBOS:
 
-    for combo in COMBOS:
-        
-        func.make_heatmap_plots(combo, 'Visibility')
+        #func.make_heatmap_plots(combo, 'Visibility')
 
-    return
+    #func.make_box_plot('Visibility', 'EVERY', 'ALL')
+    #func.make_box_plot('Visibility', 'AVERAGE', 'TOP THREE')
+    
+    func.make_bar_plots('Visibility', 0)
+    func.make_bar_plots('Visibility', 1)
+    func.make_bar_plots('Visibility', 2)
 
 
 ## runs get stats functions
@@ -96,7 +103,7 @@ def get_stats(index, site, shape_file):
     big_df = pd.DataFrame()
 
     ## loop through lwc, iwc and temp files together
-    for m_name in MONTHS.keys():
+    for m_name in MONTHS:
 
         ## load cubes - [0] for files that contain duplicate cubes
         temp_cube = iris.load_cube(f'{TEMP_F_PATH}/temp_{m_name}.grib')[0]
@@ -106,6 +113,8 @@ def get_stats(index, site, shape_file):
         ## calculate visibility using cubes
         vis_cube = calculate_visibility(temp_cube, lwc_cube, iwc_cube)
 
+        vis_cube = func.convert_timezone(vis_cube)
+        
         ## mask cube for correct site using shape_file
         site_cube = func.mask_cube(index, vis_cube, shape_file)
 
@@ -233,6 +242,8 @@ def calculate_visibility(temp_cube, lwc_cube, iwc_cube):
     vis_cube.units = "meters"
 
     return vis_cube
+
+
 
 if __name__ == "__main__":
     main()
