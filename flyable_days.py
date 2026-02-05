@@ -19,6 +19,8 @@ import pickle
 import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
+import numpy as np
+import functions as func
 
 import cartopy
 import cartopy.crs as ccrs
@@ -28,7 +30,7 @@ import pandas as pd
 from matplotlib.collections import PatchCollection
 
 from constants import (BAS_PATH, COMBOS, MONTH_DAYS, MONTHS, SITES, VARIABLES,
-                       YEARS)
+                       YEARS, SCR_PATH)
 
 warnings.filterwarnings("ignore")
 
@@ -107,6 +109,7 @@ def count_flyable_days(site, combo, data_df):
     ## check if file exists
     if flyable_file.is_file():
 
+        print(flyable_file, 'exists!')
         ## if exists, return file
         return flyable_file
 
@@ -115,20 +118,20 @@ def count_flyable_days(site, combo, data_df):
         if combo == "perfect":
 
             ## define upper thresholds
-            wind_gust_limit = 36
-            wind_speed_limit = 50
-            vis_limit = 5000
-            cld_base_limit = 1100
-            precip_limit = 0.0001
+            wind_gust_limit = 30
+            wind_speed_limit = 20
+            vis_limit = 10000
+            cld_base_limit = 1800
+            precip_limit = 0.5
 
         else:
 
             ## define Twin Otter thresholds
-            wind_gust_limit = 10
-            wind_speed_limit = 10
+            wind_gust_limit = 30
+            wind_speed_limit = 20
             vis_limit = 5000
-            cld_base_limit = 1100
-            precip_limit = 0.0005
+            cld_base_limit = 1000
+            precip_limit = 0.5
 
         ## list thresholds
         limits = [
@@ -229,18 +232,22 @@ def is_day_flyable(day_df, limits):
         True or False
     """
     
+    day_df.replace('', np.nan, inplace=True)
+    day_df.dropna(inplace=True)
+    
+    
     ## loopp through dataframe rows
     for index, row in day_df.iterrows():
 
         ## check if row is hour 23
-        if row["Hour"] == 23:
+        if (row["Hour"] == 23) | ((row["Hour"] == 20) & (row['Month'] == 2)):
 
             ## skip row as there's no pair --- change later to include following morning's hour
             continue
 
         ## otherwise
         else:
-
+            
             ## get date string
             date_str = row["Date and Time"]
 
@@ -257,15 +264,16 @@ def is_day_flyable(day_df, limits):
             hour_1 = row
             hour_2 = day_df.loc[day_df["Date and Time"] == consec_date_str]
 
+            
             ## define all limits as being unmet
             all_limits_met = []
 
             ## loop through variables and corresponding limit
             for var, limit in zip(VARIABLES, limits):
-
+                
                 ## if speed, gust or precip limit is exceeded if greater than
                 if var in ["Wind_Speed", "Gust", "Precip"]:
-
+                    
                     ## checks if either hour breaks limit
                     if (hour_1[var] <= limit) and (hour_2[var].item() <= limit):
 
@@ -308,11 +316,9 @@ def make_heatmap_plots():
     
     """
     
-    ## loop through combinations
-    for combo in COMBOS:
-
-        ## create area dictioanry
-        area_dict = {
+    big_dict = {
+            "site": [],
+            "combo": [],
             "lat": [],
             "lon": [],
             "jan": [],
@@ -321,16 +327,21 @@ def make_heatmap_plots():
             "nov": [],
             "dec": [],
         }
+    
+    ## loop through combinations
+    for combo in COMBOS:
 
         ## loop through sites
         for site in SITES:
 
+            ## lines 339 - 361: comment out after *fly_days.txt files made
+
             ## csv file paths
-            cloud_file = f"{CSV_PATH}/cloud_base_{site}_stats.csv"
-            precip_file = f"{CSV_PATH}/precip_{site}_stats.csv"
-            wind_spd_file = f"{CSV_PATH}/wind_speed_{site}_stats.csv"
-            wind_gust_file = f"{CSV_PATH}/wind_gust_{site}_stats.csv"
-            vis_file = f"{CSV_PATH}/visibility_{site}_stats.csv"
+            cloud_file = f"{SCR_PATH}/cloud_base_{site}_stats_ml.csv"
+            precip_file = f"{SCR_PATH}/Precip_{site}_stats.csv"
+            wind_spd_file = f"{SCR_PATH}/Wind_Speed_{site}_stats.csv"
+            wind_gust_file = f"{SCR_PATH}/Gust_{site}_stats.csv"
+            vis_file = f"{SCR_PATH}/Visibility_{site}_stats.csv"
 
             ## load csv files
             cloud_df = pd.read_csv(cloud_file, index_col=0)
@@ -344,8 +355,12 @@ def make_heatmap_plots():
                 cloud_df, precip_df, wind_spd_df, wind_gust_df, vis_df
             )
 
+            total_df = func.create_flying_season(total_df)
+            
             ## count flyable days and return file
             flyable_file = count_flyable_days(site, combo, total_df)
+            
+            flyable_file = Path(f"{SCR_PATH}/csv_ouputs/csv_ouputs/all_vars_{combo}_{site}_fly_days.txt")
 
             ## open flyable daya dict file
             with open(flyable_file, "rb") as file:
@@ -359,26 +374,28 @@ def make_heatmap_plots():
             for index, row in flyable_df.iterrows():
 
                 ## loop through dicitonay keys
-                for var in area_dict.keys():
+                for var in list(big_dict.keys())[2:]:
 
                     ## append value from row to dictionary for area heatmap
-                    area_dict[f"{var}"].append(row[f"{var}"].item())
+                    big_dict[f"{var}"].append(row[f"{var}"].item())
 
-            print(flyable_df)
+                big_dict['combo'].append(combo)
+                big_dict['site'].append(site)
+            
 
             ## make heatmap for sites based on months and totals
-            make_site_heatmap(flyable_df, site, combo)
-            make_site_heatmap(flyable_df, site, combo)
+            ## make_site_heatmap(flyable_df, site, combo)
+            ## make_site_heatmap(flyable_df, site, combo)
 
-        ## create dataframe from area dictionary
-        area_df = pd.DataFrame(area_dict)
-
-        ## make heatmap of whole area
-        make_area_heatmap(area_df, combo)
+    ## create dataframe from area dictionary
+    area_df = pd.DataFrame(big_dict)
+        
+    ## make heatmap of whole area
+    make_area_heatmap(area_df)
 
 
 ## make heatmap of all 3 sites together
-def make_area_heatmap(area_df, combo):
+def make_area_heatmap(area_df):
     """ 
     Makes heatmap of all 3 sites on one plot for each month and all
     months together.
@@ -388,10 +405,6 @@ def make_area_heatmap(area_df, combo):
         area_df (DataFrame): dataframe of flyable days by grid point.
         combo (str):  specific combination of weather criteria.
     """
-    
-    # month list for creating plots
-    months = ["total", "jan", "feb", "oct", "nov", "dec"]
-
 
     ## create total column
     area_df["total"] = (
@@ -401,6 +414,9 @@ def make_area_heatmap(area_df, combo):
             + area_df["nov"]
             + area_df["dec"])
 
+
+    area_df["lon"] = area_df["lon"].apply(lambda x: x-360)
+
     ## get longitude and latitudes
     lons, lats = area_df["lon"], area_df["lat"]
 
@@ -409,8 +425,21 @@ def make_area_heatmap(area_df, combo):
     lat_height = max(lats) - min(lats)
     plot_aspect = lat_height / lon_width
     
-    for month in months:
+    ## create normalised data column
+    area_df["norm"] = (area_df["total"] - area_df["total"].min()) / (
+        area_df["total"].max() - area_df["total"].min()
+    )
     
+    cmap = cm.get_cmap("viridis")
+    
+    flyable_data = (area_df["total"] / MONTH_DAYS["total"])*100
+    
+    ## create scalar mappable for colourbar
+    norm = plt.Normalize(flyable_data.min(), flyable_data.max())
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+
+    for combo in COMBOS:
+        
         # set up axes
         fig = plt.figure(figsize=(12, 12 * plot_aspect))
         ax = plt.axes(projection=ccrs.PlateCarree())
@@ -428,17 +457,11 @@ def make_area_heatmap(area_df, combo):
         ax.add_feature(cartopy.feature.BORDERS, linestyle=":", linewidth=0.3)
         ax.add_feature(cartopy.feature.LAKES, alpha=0.5)
         ax.add_feature(cartopy.feature.RIVERS)
-
-        flyable_data = (area_df[f"{month}"] / MONTH_DAYS[f'{month}'])*100
-
-        ## create normalised data column
-        area_df["norm"] = (area_df[f"{month}"] - area_df[f"{month}"].min()) / (
-            area_df[f"{month}"].max() - area_df[f"{month}"].min()
-        )
-        flyable_norm = area_df["norm"]
-
-        cmap = cm.get_cmap("viridis")
-
+        
+        flyable_df = area_df[area_df['combo'] == combo]
+        
+        flyable_norm = flyable_df['norm']
+        
         ## create patch collection for making heatmap
         patches = [
             plt.Rectangle(
@@ -447,36 +470,39 @@ def make_area_heatmap(area_df, combo):
             )
             for lon, lat, days in zip(lons, lats, flyable_norm)
         ]
-
+        
         patch_collection = PatchCollection(patches, match_original=True)
-
-        ## create scalar mappable for colourbar
-        norm = plt.Normalize(flyable_data.min(), flyable_data.max())
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-
+        
         ## add heatmap patch collection to axes
         ax.add_collection(patch_collection)
-
+        
         ## add title
-        ax.set_title(f"{month} Flyable Days by Grid Point: All Sites")
+        ax.set_title("Flyable Days by Grid Point for Flyable Season",
+                     fontsize=18,
+                     fontweight="bold")
 
+        gls = ax.gridlines(draw_labels = True, alpha = 0.2)
+        
+        gls.top_labels=False   # suppress top labels
+        gls.right_labels=False # suppress right labels
+        
         ## add colourbar
         plt.colorbar(
             sm,
             ax=ax,
-            label="No. of Flyable Days",
+            label="Flyable Days (%)",
             ticks=[
-                flyable_data.min(),
-                flyable_data.median(),
-                flyable_data.max(),
+                80, 85, 86, 87, 88, 89, 90, 91, 92, 93, 
+                94, 95, 96, 97, 98, 99, 100,
             ],
         )
 
         ## save figure
         fig.savefig(
-            f"{BAS_PATH}/plots/{month}_{combo}_all_sites_all_vars_heatmap.png"
+            f"{BAS_PATH}/plots/{combo}_all_sites_all_vars_heatmap.png",
+            bbox_inches = 'tight'
         )
-
+    
 
 ## make heatmap for each site individually
 def make_site_heatmap(flyable_df, site, combo):
