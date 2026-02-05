@@ -16,12 +16,12 @@ import warnings
 from pathlib import Path
 
 import iris
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 ## import functions module
 import functions as func
-from constants import SHP_FILE, SITES, BAS_PATH, COMBOS
+from constants import BAS_PATH, SHP_FILE, SITES
 
 warnings.filterwarnings("ignore")
 
@@ -38,13 +38,21 @@ def main():
     Runs all functions within file.
     """
     
+    ## process ERA5 data files
     process_data()
     
-    for combo in COMBOS:
+    #for combo in COMBOS:
         
-        func.make_heatmap_plots(combo, 'Gust')
+        #func.make_heatmap_plots(combo, 'Gust')
+        
+    #func.make_box_plot('Gust', 'EVERY', 'ALL')
+    #func.make_box_plot('Gust', 'EVERY', 'TOP THREE')
 
-
+    ## make bar plots
+    func.make_bar_plots('Gust', 0)
+    func.make_bar_plots('Gust', 1)
+    
+ 
 ## runs get stats functions
 def process_data():
     """
@@ -88,7 +96,12 @@ def get_stats(index, site, shape_file):
     for file in GUST_FILES:
 
         gust_cube = iris.load(file)[0]
-
+        
+        gust_cube.units = 'm s-1'
+        
+        gust_cube.convert_units('knots')
+        
+        gust_cube = func.convert_timezone(gust_cube)
         site_cube = func.mask_cube(index, gust_cube, shape_file)
 
         ## Extract coordinates
@@ -130,7 +143,7 @@ def get_stats(index, site, shape_file):
         f"{BAS_PATH}/csv_ouputs/Gust_{site}_stats.csv"
     )
 
-
+    
 if __name__ == "__main__":
     main()
 print("finished")
