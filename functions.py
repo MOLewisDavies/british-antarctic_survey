@@ -12,6 +12,7 @@ import pickle
 from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np
+import datetime  as dt
 
 import cartopy
 import cartopy.crs as ccrs
@@ -24,7 +25,7 @@ from matplotlib.collections import PatchCollection
 import seaborn as sns
 
 from constants import (MONTH_DAYS, MONTHS, SITES, YEARS, BAS_PATH, 
-                       LIMITS)
+                       LIMITS, SCR_PATH, M_FULL_NAMES)
 
 
 ## make plots
@@ -374,32 +375,72 @@ def count_flyable_days(combo, data_df, site, var):
                 days = m_number[1]
 
                 ## constrain by month
-                month_df = lat_lon_df.loc[data_df["Month"] == m_number[0]]
-
+                month_df = lat_lon_df.loc[lat_lon_df["Month"] == m_number[0]]
+                
                 ## define value for flyable list
                 flyable_days = 0
 
+                ## non flyable days
+                non_flyable_days = 0
+                
+                ## missing days
+                missing_days = 0
+                
                 ## loop through years
                 for year in YEARS:
+                    
+                    ## constraints for skipping  certain months
+                    m_con_1 = (m_name == "jan" or m_name == "feb")
+                    m_con_2 = (m_name == "oct" or  m_name == "nov" or  m_name == "dec")
+                    y_con_1 = (year == 1993)
+                    y_con_2 = (year == 2023)
+                    
+                    ## skips loop of that month and year
+                    if (m_con_1 & y_con_1) | (m_con_2  & y_con_2):
+                        
+                        continue
+                    
+                    else:
+                        
+                        ## subset dataframe for year
+                        year_month_df = month_df.loc[month_df["Year"] == year]
+                        length = len(year_month_df)
+                        
+                        ## stops if missing data is present
+                        assert not year_month_df.empty, f"no data for {year} {m_name} at {lat}, {lon}"
+                        assert not length < max(MONTHS[m_name][1]), f"only {length} days for {year} {m_name} at {lat}, {lon}"
+                        
+                        ## loop through days in month
+                        for day in days:
 
-                    ## subset dataframe for year
-                    year_month_df = month_df.loc[month_df["Year"] == year]
+                            ## subset by day
+                            day_df = year_month_df.loc[year_month_df["Day"] == day]
+                            
+                            
+                            if len(day_df) < 20:
+                                
+                                print(day_df)
+                                missing_days += 1
+                                
+                                continue
 
-                    ## loop through days in month
-                    for day in days:
+                            ## get True or False for a flyable day
+                            flyable = is_day_flyable(day_df, combo, var)
 
-                        ## subset by day
-                        day_df = year_month_df.loc[year_month_df["Day"] == day]
+                            ## check if day is flyable after analysis
+                            if flyable:
 
-                        ## get True or False for a flyable day
-                        flyable = is_day_flyable(day_df, combo, var)
-
-                        ## check if day is flyable after analysis
-                        if flyable:
-
-                            ## add 1 to total
-                            flyable_days += 1
-
+                                ## add 1 to total
+                                flyable_days += 1
+                                
+                            elif not flyable:
+                                
+                                non_flyable_days += 1
+                            
+                with open(f"{var}_{site}_{combo}_days_tally.txt", "a") as f:
+                
+                    f.write(f"{m_name}, {lat}, {lon}: m: {missing_days}, y: {flyable_days}, n: {non_flyable_days}\n")
+            
                 ## add total for month and year to dict
                 flyable_days_dict[m_name].append(flyable_days)
 
@@ -542,15 +583,16 @@ def create_flying_season(data_df):
     ## conditions for dropping each month
     
     dec92_con = (data_df['Year'] == 1992) & (data_df['Month'] == 12)
-    sep93_con = (data_df['Year'] == 1993) & (data_df['Month'] == 9)
+    sep_con = (data_df['Month'] == 9)
     jan_con = (data_df['Year'] == 1993) & (data_df['Month'] == 1)
     feb_con = (data_df['Year'] == 1993) & (data_df['Month'] == 2)
     oct_con = (data_df['Year'] == 2023) & (data_df['Month'] == 10)
     nov_con = (data_df['Year'] == 2023) & (data_df['Month'] == 11)
     dec_con = (data_df['Year'] == 2023) & (data_df['Month'] == 12)
+    mar_con = (data_df['Month'] == 3)
     
     ## list as a set of "or" conditions
-    cons = (jan_con|feb_con|oct_con|nov_con|dec_con|dec92_con|sep93_con)
+    cons = (jan_con|feb_con|oct_con|nov_con|dec_con|dec92_con|sep_con|mar_con)
     
     ## drop rows from dataframe
     data_df = data_df.drop(data_df[cons].index)
@@ -584,7 +626,7 @@ def make_box_plot(var, d_type, grid_points):
     for site in SITES:
         
         ## load dataframe
-        data_df = pd.read_csv(f"csv_ouputs/{var}_{site}_stats.csv")
+        data_df = pd.read_csv(f"csv_ouputs/{var}_{site}_stats_ml.csv")
         
         ## add site column
         data_df['site'] = site
@@ -699,11 +741,269 @@ def make_box_plot(var, d_type, grid_points):
         f"{BAS_PATH}/plots/monhtly_{var}_whisker_plot_{grid_points}_{d_type}.png",
         bbox_inches = 'tight'
     )
-                    
-                    
-                
-                
-            
 
+                 
+## make bar plots for each variable
+def make_bar_plots(var, limit):
+    """ 
+    Plots weather data against given threshold.
+    
+    Args:
+    
+    var: Weather variable to plot.
+    limit: Threshold to compare against.
+    
+    Returns:
+    
+    Bar plot.
+    """
+    
+    ## Seaborn settings - makes it look nice
+    sns.set_style("darkgrid")
+    
+    
+    ## empty dicitonary for results
+    limit_dict = {
         
+        "site": [],
+        "lat": [],
+        "lon": [],
+        "month": [],
+        "value": []
+    }
+    
+    ## loop through sites
+    for site in SITES:
+        
+        ## load dataframe
+        data_df = pd.read_csv(f"{SCR_PATH}/csv_ouputs/{var}_{site}_stats.csv")
+
+        ## create dataframe from csv
+        data_df = create_flying_season(data_df)
+        
+        ## group by lat, lon, month
+        for data, grouped_df in data_df.groupby(['Latitude', 'Longitude',
+                                                 'Month']):
+            
+            ## get month name from dict using month number in dataframe
+            m_name = [key for key, val in MONTHS.items() if val[0] == data[2]]
+            
+            ## start occurences at 0
+            occurences = 0
+            
+            ## define signs and units for different variables
+            if var in ["Wind_Speed", "Gust", "Precip"]:
+            
+                ## get number of occurences where limit is broken
+                limit_break = len(grouped_df.loc[grouped_df[f'{var}'] > LIMITS[var][limit]])
+                
+                sign = ">="
+                
+                if var == "Precip":
+                    
+                    unit = 'mm/hour'
+                    
+                else:
+                    
+                    unit = 'knots'
+                
+            else:
+            
+                ## get number of occurences where limit is broken                
+                limit_break = len(grouped_df.loc[grouped_df[f'{var}'] < LIMITS[var][limit]])
+
+                sign = "<="
+                
+                if var == 'Visibility':
+                    
+                    unit = 'm'
+                
+                else:
+                    
+                    unit = 'ft'
+                    
+            ## add limit break to occurences      
+            occurences += limit_break
+            
+            ## calculate percentage based on total available hours
+            perc = ((occurences/(MONTH_DAYS[m_name[0]]*24))*100)
+            
+            ## append data
+            limit_dict["month"].append(m_name[0])
+            limit_dict["value"].append(perc)
+            limit_dict["site"].append(site)
+            limit_dict["lat"].append(data[0])
+            limit_dict["lon"].append(data[1])   
+    
+    ## create dataframe for plotting
+    limit_df = pd.DataFrame(limit_dict)
+    
+    
+    ## format month and site strings
+    limit_df['site'] = limit_df['site'].apply(lambda x: x.replace("_", " "))
+    limit_df['site'] = limit_df['site'].apply(lambda x: x.title())
+    limit_df['month'] = limit_df['month'].apply(lambda x: x.replace(x, M_FULL_NAMES[x]))
+    
+    ## set up axes
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ## seaborn bar plot
+    sns.barplot(data=limit_df, x = 'month', y = 'value', 
+                order = ['October', 'November', 'December', 'January', 'February'], 
+                hue = 'site', errorbar="sd")
+    
+    ## set axis labels
+    ax.set_ylabel(f'Percentage occurence {sign} threshold / %', weight = 'bold')
+    ax.set_xlabel('Months', weight = 'bold')
+    
+    ## prevents standard deviation bars from showing below zero
+    ax.set_ylim(bottom=0)
+    
+    ## set up for legend
+    plt.legend(title='Site', loc = 'center left', bbox_to_anchor=(1,0.5))
+    plt.setp(ax.get_legend().get_title(), weight = 'bold', fontsize = '18')
+    plt.setp(ax.get_legend().get_texts(), fontsize = '14')
+
+    
+    ## set title
+    ax.set_title(
+        f"Percentage Occurence of {var.replace('_', ' ').title()} {sign} {LIMITS[var][limit]}{unit}",
+        fontsize=18,
+        fontweight="bold",
+    )
+    
+    ## save figure
+    fig.savefig(
+        f"{BAS_PATH}/plots/{var}_bar_plot_{LIMITS[var][limit]}.png",
+        bbox_inches = 'tight'
+    )
+
+
+## convert timezone 
+def convert_timezone(cube):
+    """ 
+    Converts iris cube to UTC-3.
+    
+    Args:
+    
+    cube: Iris cube to convert.
+    
+    Returns:
+    
+    Converted iris cube.
+    
+    """
+    
+    
+    ## get cube time
+    time = cube.coord('time')
+    dates = time.units.num2date(time.points)
+        
+    ## shift datetimes back 3 hours
+    shifted_dates = np.array([d - dt.timedelta(hours=3) for d in dates])
+    
+    ## convert back to format for cube
+    time.points = time.units.date2num(shifted_dates)
+    
+    ## return cube
+    return cube
+
+
+## plot seasonal maxima and minima
+def seasonal_plots(var, season):
+    """ 
+    Plots seasonal maxima (wind speed) & minima (temperature).
+    
+    Args:
+    
+    var: Weather variable to analyse.
+    season: Season to analyse over.
+    
+    Returns:
+    
+    Line plots of yearly seasonal max and mins
+     
+    """
+    
+    # Seaborn settings - makes it look nice
+    sns.set_style("darkgrid")
+    
+    ## dictionary for data
+    area_dict = {
+        "site": [],
+        "year": [],
+        "max": []        
+    }
+    
+    ## loop through sites
+    for site in SITES:
+        
+        ## get seasonal csv file
+        data_df = pd.read_csv(f"{SCR_PATH}/csv_ouputs/csv_ouputs/{var}_{site}_stats_{season}.csv")
+        
+        ## drop 1992, think an error with how I downloaded the data
+        year_con = (data_df['Year'] == 1992)
+        data_df = data_df.drop(data_df[year_con].index)
+        
+        ## group data by year
+        for data, grouped_df in data_df.groupby(['Year']):
+            
+            ## append year and site
+            area_dict['site'].append(site)
+            area_dict['year'].append(data[0])
+            
+            ## set up for each weather variable
+            if var == 'Wind_Speed':
+                
+                ## define units and stats 
+                unit = 'knots'
+                area_dict['max'].append(grouped_df[f'{var}'].max())
+                stat = 'Maxima'
+        
+            else:
+                
+                ## define units and stats
+                unit = '°C'
+                area_dict['max'].append(grouped_df[f'{var}'].min() - 273.15)
+                stat = 'Minima'
+    
+    
+    ## turn dict into dataframe
+    area_df = pd.DataFrame(area_dict)
+    
+    ## format site names
+    area_df['site'] = area_df['site'].apply(lambda x: x.replace("_", " "))
+    area_df['site'] = area_df['site'].apply(lambda x: x.title())
+    
+    ## set up axes
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ## line plots
+    sns.lineplot(data=area_df, x='year', y = 'max', hue = 'site')
+    
+    ## axis labels
+    ax.set_ylabel(f'{stat} / {unit}', weight = 'bold')
+    ax.set_xlabel('Years', weight = 'bold')
+    
+    ## set up legend
+    plt.legend(title='Site', loc = 'center left', bbox_to_anchor=(1,0.5))
+    plt.setp(ax.get_legend().get_title(), weight = 'bold', fontsize = '18')
+    plt.setp(ax.get_legend().get_texts(), fontsize = '14')
+    
+    ## set title
+    ax.set_title(
+        f"{season.title()} {var.replace('_', ' ')} {stat}",
+        fontsize=18,
+        fontweight="bold",
+    )
+    
+    ## set ticks to be years and rotated so they fit nicely
+    ax.set(xticks=area_df.year.values)
+    ax.set_xticklabels(ax.get_xticks(), rotation=45)
+    
+    ## save figure
+    fig.savefig(
+        f"{BAS_PATH}/plots/{var}_{season}_{stat}.png",
+        bbox_inches = 'tight'
+    )
     
