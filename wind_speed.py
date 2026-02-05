@@ -21,7 +21,7 @@ import pandas as pd
 
 ## import functions module
 import functions as func
-from constants import SHP_FILE, SITES, BAS_PATH, COMBOS
+from constants import BAS_PATH, SEASONS, SHP_FILE, SITES
 
 warnings.filterwarnings("ignore")
 
@@ -33,50 +33,61 @@ DATA_DIR = "/data/scratch/lewis.davies/bas/wind"
 U_FILE_NAME = "uwind_*.grib"
 V_FILE_NAME = "vwind_*.grib"
 
-## files
-U_WIND_FILES = sorted(glob.glob(f"{DATA_DIR}/{U_FILE_NAME}"))
-V_WIND_FILES = sorted(glob.glob(f"{DATA_DIR}/{V_FILE_NAME}"))
-
 ## runs other functions
 def main():
     """ 
     Runs all functions within file.
     """
     
-    #process_data()
-    for combo in COMBOS:
+    ## process data from era5 files
+    for season in SEASONS:
         
-        func.make_heatmap_plots(combo, 'Wind_Speed')
+        process_data(season)
+        
+    #for combo in COMBOS:
+        
+        #func.make_heatmap_plots(combo, 'Wind_Speed')
 
-    return
+    ## make bar plots
+    func.make_bar_plots('Wind_Speed', 0)
+    func.make_bar_plots('Wind_Speed', 1)
+    func.make_bar_plots('Wind_Speed', 2)
+    
+    ## make seasonal plots
+    func.seasonal_plots('Wind_Speed', 'summer')
+    func.seasonal_plots('Wind_Speed', 'winter')
 
 
 ## run get stats functions
-def process_data():
+def process_data(season):
     """
     Processes era5 files into stats csv files.
+    
+    Args:
+    
+    season: Season to analyse
     """
     
     ## loops through sites
     for index, site in enumerate(SITES):
 
         ## path for csv files
-        csv_file = Path(f"csv_ouputs/Wind_Speed_{site}_stats.csv")
+        csv_file = Path(f"csv_ouputs/Wind_Speed_{site}_stats_{season}.csv")
 
         ## checks if csv file exists
         if csv_file.is_file():
 
-            print(f"Wind_Speed_{site}_stats.csv exists")
+            print(f"Wind_Speed_{site}_stats_{season}.csv exists")
 
         # ...if it doesn't - produces data
         else:
 
             ## get stats from cubes
-            get_stats(index, site, SHP_FILE)
+            get_stats(index, site, SHP_FILE, season)
 
 
 ## get stats from era5 data
-def get_stats(index, site, shape_file):
+def get_stats(index, site, shape_file, season):
     """ 
     Creates dataframe of hourly era5 weather data, separated into grid
     point.
@@ -87,6 +98,17 @@ def get_stats(index, site, shape_file):
         site (str): Antarctica site.
         shape_file (path): path to shape file
     """
+    
+    if season == 'flying':
+        
+        ## files
+        U_WIND_FILES = sorted(glob.glob(f"{DATA_DIR}/{U_FILE_NAME}"))
+        V_WIND_FILES = sorted(glob.glob(f"{DATA_DIR}/{V_FILE_NAME}"))
+        
+    else:
+        
+        U_WIND_FILES = sorted(glob.glob(f"{DATA_DIR}/{season}/{U_FILE_NAME}"))
+        V_WIND_FILES = sorted(glob.glob(f"{DATA_DIR}/{season}/{V_FILE_NAME}"))
     
     big_df = pd.DataFrame()
 
@@ -100,6 +122,10 @@ def get_stats(index, site, shape_file):
         ## calculate new wind speed cube from u and v
         ws_cube = calculate_wind_speed(u_cube, v_cube)
 
+        ws_cube.convert_units('knots')
+        
+        ws_cube = func.convert_timezone(ws_cube)
+        
         ## mask wind speed cube based on site
         ws_site_cube = func.mask_cube(index, ws_cube, shape_file)
 
@@ -123,7 +149,7 @@ def get_stats(index, site, shape_file):
         )
 
         # Drop masked values
-        df = df.dropna(subset=["Wind Speed"])
+        df = df.dropna(subset=["Wind_Speed"])
 
         # Add in month, day and hour columns
         df["Year"] = [d_time.year for d_time in df["Date and Time"]]
@@ -139,7 +165,7 @@ def get_stats(index, site, shape_file):
 
     ## save dataframe as csv
     big_df.to_csv(
-        f"{BAS_PATH}/csv_ouputs/Wind_Speed_{site}_stats.csv"
+        f"{BAS_PATH}/csv_ouputs/Wind_Speed_{site}_stats_{season}.csv"
     )
 
 
@@ -167,6 +193,7 @@ def calculate_wind_speed(u_cube, v_cube):
     ws_cube.standard_name = "wind_speed"
 
     return ws_cube
+
 
 if __name__ == "__main__":
     main()
